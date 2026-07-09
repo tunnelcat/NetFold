@@ -8,11 +8,25 @@ A single-file HTML tool for parsing and merging Nessus and Nmap scan output into
 
 Takes raw `.nessus` and nmap XML files and turns them into structured tables you can filter, sort, deduplicate, and export. Useful when you're juggling multiple scan files across different targets and need to make sense of it quickly.
 
+## Usage
+
+1. Download `netfold.html`
+2. Open it in any modern browser
+3. Drop your scan files in
+4. Filter, sort, export
+
+No internet connection required after the initial font load (Google Fonts). If you need fully offline use, the font will fall back to `Fira Code` or monospace.
+
+## Supported formats
+
+- `.nessus` (Nessus v2 XML)
+- Nmap XML (`-oX`)
+
 ## Views
 
 | View | Description |
 |------|-------------|
-| **Nessus** | Ports from the Nessus SYN/UDP port-discovery plugins, plus a **State** column |
+| **Nessus** | Ports from the Nessus SYN/UDP port-discovery plugins |
 | **Nmap** | All ports from nmap XML |
 | **Combined** | Both sources merged, matching entries collapse into a single row with a **both** badge |
 | **Summary** | Groups hosts by shared IPs and hostnames (transitive). One row per group, ports displayed as a chip grid. Collapsible rows. |
@@ -35,37 +49,22 @@ Takes raw `.nessus` and nmap XML files and turns them into structured tables you
 
 ## Nessus parsing notes
 
-Only plugin IDs `11219` (SYN scanner) and `14274` (UDP scanner) are used for port discovery; every other plugin is ignored, including at port 0.
-
-**State** is determined per row by searching that plugin's `plugin_output` text for the phrase "was found to be open". If found, state is `open`; otherwise it's `unknown` rather than assumed open, since these plugins occasionally also fire on port 0 (host-level, not a real port) or on ports where the output text doesn't confirm an open state.
-
-Hostname comes from whichever of `host-fqdn`, `hostname`, or `netbios-name` appears first in the file's `HostProperties` tags (not a fixed priority order independent of the file's own tag order, though `host-fqdn` conventionally comes first in real Nessus exports). IP is read from `host-ip`; if that's missing, the `ReportHost` name attribute is used as the IP only if it actually parses as valid IPv4, otherwise it becomes the hostname instead.
+- Only two plugins are used for port discovery: `11219` (SYN scanner) and `14274` (UDP scanner). Everything else is ignored, including at port 0.
+- **State**: NetFold scans that plugin's `plugin_output` text for the phrase "was found to be open". Found → `open`. Not found → `unknown` (never assumed open).
+- **Hostname**: whichever of `host-fqdn`, `hostname`, or `netbios-name` shows up first in the file.
+- **IP**: read from `host-ip`. If that's missing, NetFold falls back to the `ReportHost` name attribute, but only uses it as the IP if it's valid IPv4. Otherwise that value becomes the hostname instead.
 
 ## Nmap parsing notes
 
-On a dual-stack host, IPv4 is always preferred over IPv6 regardless of which `<address>` element appears first in the XML; an IPv6-only host keeps its IPv6 address. A host with no `<port>` elements at all (scanned but nothing open or listed) is still represented as a synthesized host-level row rather than disappearing from the results entirely.
+- **Dual-stack hosts**: IPv4 is always used, even if IPv6 appears first in the file. IPv6-only hosts keep their IPv6 address.
+- **Hosts with no ports listed** still show up, as a synthesized host-level row, instead of just disappearing from the results.
 
 ## Keying and merging
 
-Rows are deduplicated and merged using a small set of identity keys, all derived per-row rather than per-file:
+NetFold identifies a row by its host (IP, or hostname if there's no IP), protocol, and port. That identity is used two ways:
 
-- **Row identity** is `ip` (or, if the row has no IP, `hn:` + hostname, so distinct hostname-only hosts don't collapse onto a shared empty-IP key).
-- **Same-source dedup** (two Nessus files, or two Nmap files, describing the same row) keys on `identity + protocol + port + source`. On a conflict, the row reporting `state=open` wins over one that doesn't, so a re-scan that confirms a port open isn't discarded just because an older, less complete file loaded first. This applies regardless of which filenames the duplicate rows came from — uploading identical content under two different names still produces one row, not two.
-- **Cross-source merge** (Combined view) keys on `identity + hostname (case-insensitive) + protocol + port + state`. Two rows that agree on all of that collapse into one `both`-badged row with a combined service name. Hostname is part of the key: if Nessus and Nmap report two different non-empty hostnames for the same host/port/state, the rows are **not** merged — both stay visible as separate rows so neither name is silently dropped. An empty hostname from one side does not backfill from the other; it's just treated as its own distinct key value.
-
-## Usage
-
-1. Download `netfold.html`
-2. Open it in any modern browser
-3. Drop your scan files in
-4. Filter, sort, export
-
-No internet connection required after the initial font load (Google Fonts). If you need fully offline use, the font will fall back to `Fira Code` or monospace.
-
-## Supported formats
-
-- `.nessus` (Nessus v2 XML)
-- Nmap XML (`-oX`)
+- **Same-source dedup** — two Nessus files (or two Nmap files) describing the same host/protocol/port collapse into one row, no matter what the files are named. If they disagree on state, the one reporting `open` wins, so confirming a port open on a re-scan doesn't get lost just because an older file loaded first.
+- **Cross-source merge** (Combined view only) — a Nessus row and an Nmap row combine into one `both`-badged row only if they also agree on hostname (case-insensitive) and state. If Nessus and Nmap report different hostnames for the same host/port, both rows stay separate so neither name gets dropped. An empty hostname on one side is never treated as matching a non-empty one on the other.
 
 ## License
 
