@@ -792,7 +792,7 @@ function parseNessus(doc, fname) {
     host.querySelectorAll('ReportItem').forEach(item => {
       const port     = item.getAttribute('port')     || '';
       const proto    = item.getAttribute('protocol') || '';
-      const svcName  = item.getAttribute('svc_name') || '';
+      const svcName  = (item.getAttribute('svc_name') || '').toLowerCase();
       const pluginId = item.getAttribute('pluginID') || '';
       if (!NESSUS_PORT_PLUGINS.has(pluginId)) return;
       // These plugins' plugin_output reads e.g. "Port 443/tcp was found to be
@@ -837,7 +837,7 @@ function parseNmap(doc, fname) {
       const protocol  = p.getAttribute('protocol') || '';
       const portid    = p.getAttribute('portid')   || '';
       const svc       = p.querySelector('service');
-      const service   = (svc?.getAttribute('name') || '').trim();
+      const service   = (svc?.getAttribute('name') || '').trim().toLowerCase();
       rows.push({ _file: fname, source: 'nmap', ip, hostname, protocol: protocol.toLowerCase(), port: portid, service, state: portState });
     });
   });
