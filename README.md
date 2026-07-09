@@ -1,6 +1,6 @@
 # ⌬ NetFold
 
-A single-file HTML tool for parsing and merging Nessus and Nmap scan output into clean, filterable tables. No install, no server, no dependencies — open `netfold.html` in a browser and drop your files in.
+A single-file HTML tool for parsing and merging Nessus and Nmap scan output into clean, filterable tables. No install, no server, no dependencies. Open `netfold.html` in a browser and drop your files in.
 
 ---
 
@@ -34,15 +34,15 @@ No internet connection required after the initial font load (Google Fonts). If y
 ## Features
 
 - **Auto-detects format by content, not extension or filename.** A file is parsed by reading its actual XML structure (root tag / element presence), so a `.nessus` file with the wrong extension, no extension, or a misleading name still parses correctly.
-- **Deduplication** across multiple files of the same type — see [Keying and merging](#keying-and-merging) below.
+- **Deduplication** across multiple files of the same type; see [Keying and merging](#keying-and-merging) below.
 - **Duplicate filenames are rejected.** The first file with a given name wins (by drop order, not load order); every later file with the same name is skipped with a warning toast, so a same-batch or later duplicate can't silently overwrite already-loaded data.
 - **Host-level entries (port 0).** Nessus port-0 findings from the port-discovery plugins, and Nmap hosts with no open/listed ports, show up as a synthesized `port 0 / reserved` row so a scanned-but-empty host is never invisible. Toggleable independently of "Open ports only" and unaffected by the other filters' relevance to real ports.
-- **Exclusions** — IPs by exact match, CIDR (`/24`, leading zeros in the mask rejected), whole-IP range (`10.0.0.1-10.0.0.50`), nmap-style per-octet range (`10.0-5.1.1-50`), or wildcard (`192.168.1.*`); hostnames by exact match or wildcard (`*.corp.lan`). Invalid rules are flagged inline with a line-specific error instead of failing silently.
-- **Port exclusions** — single ports or ranges (`8080-8090`).
-- **Filters** — IP/hostname, exact port, fuzzy service name, protocol, "Open ports only" toggle, "Show host-level entries" toggle. All filters combine (AND), including host-level rows, which are still subject to the IP/port/service/protocol filters.
-- **Summary grouping** — union-find algorithm groups hosts that share an IP or hostname transitively; a host known by two different names (e.g. Nessus FQDN vs Nmap PTR) shows both under one group.
-- **Export CSV** — exports whatever view is active, UTF-8 with BOM (Excel-safe).
-- **Copy as TSV** — copies the active view to the clipboard as tab-separated values for pasting straight into Excel/Sheets.
+- **Exclusions**: IPs by exact match, CIDR (`/24`, leading zeros in the mask rejected), whole-IP range (`10.0.0.1-10.0.0.50`), nmap-style per-octet range (`10.0-5.1.1-50`), or wildcard (`192.168.1.*`); hostnames by exact match or wildcard (`*.corp.lan`). Invalid rules are flagged inline with a line-specific error instead of failing silently.
+- **Port exclusions**: single ports or ranges (`8080-8090`).
+- **Filters**: IP/hostname, exact port, fuzzy service name, protocol, "Open ports only" toggle, "Show host-level entries" toggle. All filters combine (AND), including host-level rows, which are still subject to the IP/port/service/protocol filters.
+- **Summary grouping**: union-find algorithm groups hosts that share an IP or hostname transitively; a host known by two different names (e.g. Nessus FQDN vs Nmap PTR) shows both under one group.
+- **Export CSV**: exports whatever view is active, UTF-8 with BOM (Excel-safe).
+- **Copy as TSV**: copies the active view to the clipboard as tab-separated values for pasting straight into Excel/Sheets.
 - **Column resizing** with per-column auto-fit sizing based on loaded data; manual resizes persist across re-renders.
 - **Light/dark mode.**
 - **Toast notifications** are color-coded: green for a successful parse, yellow for a recognized-but-empty file (0 rows, usually a truncated or corrupted scan) or a skipped duplicate, red for a file that couldn't be identified as Nessus or Nmap at all.
@@ -63,8 +63,8 @@ No internet connection required after the initial font load (Google Fonts). If y
 
 NetFold identifies a row by its host (IP, or hostname if there's no IP), protocol, and port. That identity is used two ways:
 
-- **Same-source dedup** — two Nessus files (or two Nmap files) describing the same host/protocol/port collapse into one row, no matter what the files are named. If they disagree on state, the one reporting `open` wins, so confirming a port open on a re-scan doesn't get lost just because an older file loaded first.
-- **Cross-source merge** (Combined view only) — a Nessus row and an Nmap row combine into one `both`-badged row only if they also agree on hostname (case-insensitive) and state. If Nessus and Nmap report different hostnames for the same host/port, both rows stay separate so neither name gets dropped. An empty hostname on one side is never treated as matching a non-empty one on the other.
+- **Same-source dedup**: two Nessus files (or two Nmap files) describing the same host/protocol/port collapse into one row, no matter what the files are named. If they disagree on state, the one reporting `open` wins, so confirming a port open on a re-scan doesn't get lost just because an older file loaded first.
+- **Cross-source merge** (Combined view only): a Nessus row and an Nmap row combine into one `both`-badged row only if they also agree on hostname (case-insensitive) and state. If Nessus and Nmap report different hostnames for the same host/port, both rows stay separate so neither name gets dropped. An empty hostname on one side is never treated as matching a non-empty one on the other.
 
 ## License
 
