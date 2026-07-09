@@ -1316,7 +1316,7 @@ function resetPage() { state.currentPage = 1; }
 // (pre-pagination), used for the "X groups" label and empty-state check.
 // Shared with getExportData()'s summary branch so CSV/copy output uses the
 // same "first N ports + X more" truncation as the on-screen table.
-const MAX_VISIBLE_PORTS = 35;
+const MAX_VISIBLE_PORTS = 50;
 
 function renderSummary(pageGroups, filteredCount, totalGroups, body, empty, footer) {
   // Header is built before the empty-state check so switching to the Summary
