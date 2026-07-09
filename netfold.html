@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetFold</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg:      #0d0f12;
+    --bg2:     #13161b;
+    --bg3:     #1a1e26;
+    --surface: #1e232d;
+    --border:  rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text:    #e8eaf0;
+    --muted:   #6b7280;
+    --accent:  #00e5a0;
+    --accent2: #0ea5e9;
+    --accent3: #f59e0b;
+    --danger:  #ef4444;
+    --nessus-color: #f59e0b;
+    --nmap-color:   #0ea5e9;
+    --radius: 8px;
+    --font: 'JetBrains Mono', 'Fira Code', monospace;
+    --row-hover: rgba(255,255,255,0.025);
+    --td-border: rgba(255,255,255,0.07);
+  }
+  [data-theme="light"] {
+    --bg:      #f0f2f6;
+    --bg2:     #ffffff;
+    --bg3:     #e8ebf2;
+    --surface: #dde2ec;
+    --border:  rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.14);
+    --text:    #1a1e2a;
+    --muted:   #7a8498;
+    --accent:  #00966a;
+    --accent2: #0077b6;
+    --accent3: #b07800;
+    --danger:  #c0392b;
+    --nessus-color: #b07800;
+    --nmap-color:   #0077b6;
+    --row-hover: rgba(0,0,0,0.03);
+    --td-border: rgba(0,0,0,0.07);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { zoom: 1.25; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    min-height: 100vh;
+    line-height: 1.5;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-wrap: wrap;
+  }
+  .logo { font-size: 16px; font-weight: 700; letter-spacing: -0.5px; color: var(--accent); }
+  .logo span { color: var(--text); }
+  .tagline { font-size: 11px; color: var(--muted); }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .stats-bar { display: flex; gap: 18px; font-size: 11px; color: var(--muted); }
+  .stat-item strong { color: var(--text); }
+
+  .hdr-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .hdr-btn:hover { color: var(--text); border-color: var(--accent); }
+  .hdr-btn-green {
+    color: var(--accent);
+    border-color: rgba(0,229,160,0.4);
+    background: rgba(0,229,160,0.07);
+  }
+  .hdr-btn-green:hover { background: rgba(0,229,160,0.15); border-color: var(--accent); color: var(--accent); }
+  [data-theme="light"] .hdr-btn-green {
+    color: var(--accent);
+    border-color: rgba(0,150,106,0.4);
+    background: rgba(0,150,106,0.07);
+  }
+  [data-theme="light"] .hdr-btn-green:hover { background: rgba(0,150,106,0.15); }
+
+  /* ── LAYOUT ── */
+  .main { padding: 20px 28px; max-width: 1600px; margin: 0 auto; }
+
+  /* ── DROP ZONE (single) ── */
+  .drop-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 22px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--bg2);
+    margin-bottom: 16px;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,229,160,0.04);
+  }
+  .drop-zone .dz-icon { font-size: 22px; margin-bottom: 5px; color: var(--muted); }
+  .drop-zone .dz-label { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--text); }
+  .drop-zone .dz-hint  { font-size: 11px; color: var(--muted); }
+  .drop-zone .dz-files {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  /* file tags with source colour */
+  .file-tag {
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text);
+    background: rgba(255,255,255,0.06);
+  }
+  [data-theme="light"] .file-tag { background: rgba(0,0,0,0.05); }
+  .file-tag.ft-nessus { border-color: rgba(245,158,11,0.4); color: var(--nessus-color); background: rgba(245,158,11,0.07); }
+  .file-tag.ft-nmap   { border-color: rgba(14,165,233,0.4);  color: var(--nmap-color);   background: rgba(14,165,233,0.07); }
+  .file-tag .rm { cursor: pointer; color: var(--muted); font-size: 14px; line-height: 1; transition: color 0.1s; margin-left: 2px; }
+  .file-tag .rm:hover { color: var(--danger); }
+  input[type=file] { display: none; }
+
+  /* ── CONTROLS ── */
+  .controls { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 7px 13px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .btn:hover  { background: var(--surface); }
+  .btn.danger { border-color: var(--danger); color: var(--danger); }
+  .btn.danger:hover { background: rgba(239,68,68,0.08); }
+
+  .view-toggle { display: flex; border: 1px solid var(--border2); border-radius: var(--radius); overflow: hidden; }
+  .view-toggle button {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 7px 13px;
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-right: 1px solid var(--border2);
+  }
+  .view-toggle button:last-child { border-right: none; }
+  .view-toggle button.active        { background: var(--surface); color: var(--text); }
+  .view-toggle button.nessus.active { color: var(--nessus-color); }
+  .view-toggle button.nmap.active   { color: var(--nmap-color); }
+  .view-toggle button.combined.active { color: var(--accent); }
+
+  .view-toggle button.summary.active { color: #a78bfa; }
+
+  /* ── SUMMARY TABLE ── */
+  .summary-table td {
+    vertical-align: top;
+    white-space: normal;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--td-border);
+    font-size: 12px;
+  }
+  .summary-table tr:last-child td { border-bottom: none; }
+  .summary-table tr:hover td { background: var(--row-hover); }
+
+  .sum-col-hosts { width: 200px; }
+  .sum-col-ips   { width: 140px; }
+  .sum-col-ports { width: auto; }
+
+  .sum-line { display: block; line-height: 1.8; }
+  .sum-host { color: var(--muted); }
+  .sum-ip   { color: var(--text); font-weight: 500; }
+
+  /* port chip grid */
+  .sum-ports-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .sum-port-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border2);
+    background: var(--bg3); font-size: 10px; white-space: nowrap;
+  }
+  .sum-proto-port {
+    font-size: 9px; font-weight: 700; padding: 1px 5px;
+    border-radius: 3px; text-transform: uppercase;
+  }
+  .sum-pp-tcp { background: rgba(0,229,160,0.10); color: var(--accent); }
+  .sum-pp-udp { background: rgba(245,158,11,0.10); color: var(--nessus-color); }
+  .sum-pp-other { background: var(--surface); color: var(--muted); }
+  .sum-svc  { color: var(--muted); font-size: 10px; }
+
+  .sum-more-btn {
+    display: inline-block;
+    background: transparent; border: 1px solid var(--border2); color: var(--accent2);
+    font-family: var(--font); font-size: 10px; font-weight: 600; padding: 3px 9px;
+    border-radius: 4px; cursor: pointer; margin-top: 6px; transition: all 0.15s;
+  }
+  .sum-more-btn:hover { background: var(--surface); border-color: var(--accent2); }
+  .sum-port-extra-group { display: contents; }
+  .sum-port-extra-group.hidden { display: none; }
+
+  /* collapse toggle */
+  .sum-toggle {
+    cursor: pointer; user-select: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--muted); padding: 3px 4px; border-radius: 3px;
+    transition: color 0.15s, background 0.15s; margin-right: 4px; flex-shrink: 0;
+  }
+  .sum-toggle:hover { color: var(--text); background: var(--surface); }
+  .sum-row.collapsed .sum-ports-grid { display: none; }
+  .sum-row.collapsed .sum-extra { display: none; }
+  .sum-row.collapsed .sum-port-chip { display: none; }
+  .sum-row.collapsed .sum-port-chip:first-child { display: inline-flex; opacity: 0.5; }
+  .sum-row.collapsed .sum-more-btn { display: none; }
+
+  /* table meta bar above table */
+  .table-meta {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    padding: 0 2px 7px; font-size: 11px; color: var(--muted); min-height: 22px;
+  }
+  .pagination-bar { display: flex; align-items: center; gap: 8px; }
+  .pagination-bar .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .pagination-bar .btn:disabled:hover { background: transparent; }
+
+  /* ── EXCLUSION PANEL ── */
+  .exclusion-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .exclusion-panel.open { display: block; }
+  .exclusion-panel h4 {
+    font-size: 11px; color: var(--danger); font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .excl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .excl-group label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 5px; font-weight: 600; }
+  .excl-textarea-wrap { position: relative; }
+  .excl-linenos {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 26px;
+    padding: 8px 4px 8px 0;
+    font-family: var(--font);
+    font-size: 11px;
+    line-height: 1.6;
+    text-align: right;
+    color: var(--muted);
+    opacity: 0.55;
+    white-space: pre;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+    box-sizing: border-box;
+  }
+  .excl-group textarea {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 11px;
+    padding: 8px 10px 8px 32px;
+    border-radius: 6px;
+    width: 100%;
+    height: 84px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+    line-height: 1.6;
+  }
+  .excl-group textarea:focus { border-color: var(--danger); }
+  .excl-hint { font-size: 10px; color: var(--muted); margin-top: 5px; opacity: 0.8; line-height: 1.6; }
+  .excl-hint .hl { color: var(--accent); opacity: 0.9; }
+  .excl-errors {
+    display: none;
+    margin-top: 6px;
+    font-size: 10.5px;
+    line-height: 1.7;
+    font-family: var(--font);
+  }
+  .excl-errors .excl-error-line { color: var(--danger); }
+  .excl-errors .excl-error-tag { font-weight: 700; }
+
+  /* ── FILTER BAR ── */
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .filter-input {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .filter-input:focus { border-color: var(--accent); }
+  .filter-input::placeholder { color: var(--muted); }
+  .filter-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+
+  /* ── TABLE ── */
+  .table-wrapper {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--bg2);
+  }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  thead th {
+    background: var(--bg3);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  thead th:hover { color: var(--text); }
+  thead th.sorted { color: var(--accent); }
+  thead th .sort-icon { opacity: 0.4; margin-left: 4px; }
+  thead th.sorted .sort-icon { opacity: 1; }
+
+  /* ── COLUMN RESIZE ── */
+  .col-resize-handle {
+    position: absolute; top: 0; right: -3px; width: 7px; height: 100%;
+    cursor: col-resize; z-index: 5; user-select: none;
+  }
+  .col-resize-handle::after {
+    content: ''; position: absolute; top: 15%; bottom: 15%; left: 50%;
+    width: 2px; transform: translateX(-50%);
+    background: var(--muted); border-radius: 1px;
+    transition: background 0.1s;
+  }
+  .col-resize-handle:hover::after, .col-resize-handle.resizing::after { background: var(--accent); }
+  .col-resize-handle.resizing::after { width: 3px; }
+
+  /* ── HOSTNAME TOOLTIP ── */
+  /* CSS-ellipsis-truncates long hostnames; title attribute always carries the full value */
+  .host-cell-text {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+    cursor: help;
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--td-border);
+    font-size: 12px;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--row-hover); }
+
+  .col-src   { width: 80px; }
+  .col-ip    { width: 140px; }
+  .col-host  { width: 190px; }
+  .col-proto { width: 72px; }
+  .col-port  { width: 72px; }
+  .col-svc   { width: 150px; }
+  .col-state { width: 80px; }
+  .col-auto  { width: auto; } /* rightmost column, absorbs leftover width, see makeColumnsResizable */
+
+  .badge {
+    display: inline-block; font-size: 9px; font-weight: 700;
+    letter-spacing: 0.6px; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
+  }
+  .badge-nessus { background: rgba(245,158,11,0.14); color: var(--nessus-color); border: 1px solid rgba(245,158,11,0.25); }
+  .badge-nmap   { background: rgba(14,165,233,0.14);  color: var(--nmap-color);   border: 1px solid rgba(14,165,233,0.25); }
+  .badge-both   { background: rgba(160,80,220,0.14);  color: #c084fc;             border: 1px solid rgba(160,80,220,0.3); }
+
+  .proto-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+  .proto-tcp   { background: rgba(0,229,160,0.10);  color: var(--accent); }
+  .proto-udp   { background: rgba(245,158,11,0.10); color: var(--nessus-color); }
+  .proto-other { background: var(--surface); color: var(--muted); }
+
+  .port-num  { color: var(--accent2); font-weight: 600; }
+  .ip-text   { color: var(--text); font-weight: 500; }
+  .host-text { color: var(--muted); }
+
+  .state-open     { color: var(--accent); }
+  .state-closed   { color: var(--danger); }
+  .state-filtered { color: var(--accent3); }
+  .state-unknown  { color: var(--muted); }
+
+  .empty-state { text-align: center; padding: 58px 20px; color: var(--muted); }
+  .empty-state .big { font-size: 38px; margin-bottom: 10px; }
+  .empty-state p { font-size: 12px; }
+
+  .table-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px; border-top: 1px solid var(--border);
+    background: var(--bg3); font-size: 11px; color: var(--muted);
+  }
+
+  #toast-container {
+    position: fixed; bottom: 22px; right: 22px;
+    display: flex; flex-direction: column-reverse; gap: 8px;
+    z-index: 9999; pointer-events: none;
+  }
+  .toast-item {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 10px 12px 10px 16px;
+    font-size: 12px; color: var(--text);
+    transform: translateY(18px); opacity: 0; transition: all 0.2s;
+    white-space: nowrap; pointer-events: all;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .toast-item.show { transform: translateY(0); opacity: 1; }
+  .toast-label-error   { color: var(--danger); font-weight: 700; }
+  .toast-label-success { color: var(--accent);  font-weight: 700; }
+  .toast-label-warning { color: var(--accent3); font-weight: 700; }
+  .toast-close {
+    cursor: pointer; color: var(--muted); font-size: 14px; line-height: 1;
+    flex-shrink: 0; transition: color 0.15s;
+  }
+  .toast-close:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo"><span style="margin-right:7px;opacity:0.85;">⌬</span>Net<span>Fold</span></div>
+    <div class="tagline">Combine nessus · nmap → overview</div>
+  </div>
+  <div class="header-right">
+    <div class="stats-bar">
+      <span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);color:#a78bfa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Summary</span>
+      <span class="stat-item">Unique IPs: <strong id="statHosts">0</strong></span>
+      <span class="stat-item">Unique Hostnames: <strong id="statHostnames">0</strong></span>
+      <span class="stat-item">Unique Ports: <strong id="statPorts">0</strong></span>
+    </div>
+    <button class="hdr-btn hdr-btn-green" id="btnExport">↓ Export Current View - CSV</button>
+    <button class="hdr-btn hdr-btn-green" id="btnCopy">⧉ Copy Current View - TSV/Table</button>
+    <button class="hdr-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">☀</span><span id="themeLabel">Light</span>
+    </button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- SINGLE DROP ZONE -->
+  <div class="drop-zone" id="dzAll">
+    <div class="dz-icon">⬡</div>
+    <div class="dz-label">Drop scan files here</div>
+    <div class="dz-hint">Accepts <span style="color:var(--nessus-color)">.nessus</span> and <span style="color:var(--nmap-color)">nmap XML</span>, format auto-detected &nbsp;·&nbsp; click to browse</div>
+    <div class="dz-files" id="allFileList"></div>
+    <input type="file" id="allInput" accept=".nessus,.xml" multiple>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div class="view-toggle" id="viewToggle">
+      <button class="nessus active" data-view="nessus">Nessus</button>
+      <button class="nmap" data-view="nmap">Nmap</button>
+      <button class="combined" data-view="combined">Combined</button>
+      <button class="summary" data-view="summary">Summary</button>
+    </div>
+    <button class="btn" id="btnExclusions">⊘ Exclusions</button>
+    <button class="btn danger ml-auto" id="btnClear">✕ Clear All</button>
+  </div>
+
+  <!-- EXCLUSION PANEL -->
+  <div class="exclusion-panel" id="exclusionPanel">
+    <h4>⊘ Exclusion Rules</h4>
+    <div class="excl-grid">
+      <div class="excl-group">
+        <label>Exclude IPs / Hostnames</label>
+        <div class="excl-textarea-wrap">
+          <div class="excl-linenos" id="exclHostsLineNos">1</div>
+          <textarea id="exclHosts" placeholder="192.168.1.1&#10;10.0.0.0/24&#10;10.0.0.1-10.0.0.50&#10;192.168.1.*&#10;internal.host.lan"></textarea>
+        </div>
+        <div class="excl-errors" id="exclHostsErrors"></div>
+        <div class="excl-hint">
+          One per line. IPs: <span class="hl">exact</span> · <span class="hl">CIDR</span> /24 · <span class="hl">range</span> x.x.x.1-x.x.x.50 · <span class="hl">wildcard</span> 192.168.1.* · <span class="hl">octet range</span> 10.0-5.1.1-50 (nmap-style)<br>
+          Hostnames (any rule with a letter): <span class="hl">exact</span> web.corp.lan · <span class="hl">wildcard</span> *.corp.lan
+        </div>
+      </div>
+      <div class="excl-group">
+        <label>Exclude Ports</label>
+        <div class="excl-textarea-wrap">
+          <div class="excl-linenos" id="exclPortsLineNos">1</div>
+          <textarea id="exclPorts" placeholder="80&#10;443&#10;8080-8090&#10;22"></textarea>
+        </div>
+        <div class="excl-errors" id="exclPortsErrors"></div>
+        <div class="excl-hint">One per line. Single ports or ranges (e.g. 8080-8090).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <span class="filter-label">Filter:</span>
+    <input class="filter-input" type="text" id="filterIP"      placeholder="IP / Hostname..."   style="width:180px">
+    <input class="filter-input" type="text" id="filterProto"   placeholder="Proto (tcp/udp)..."  style="width:150px">
+    <input class="filter-input" type="text" id="filterPort"    placeholder="Port (exact)..."    style="width:130px">
+    <input class="filter-input" type="text" id="filterService" placeholder="Service (fuzzy)..."  style="width:160px">
+    <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);cursor:pointer;margin-left:6px;user-select:none;">
+      <input type="checkbox" id="filterOpenOnly" checked onchange="resetPage(); renderTable()"
+             style="accent-color:var(--accent);width:13px;height:13px;cursor:pointer;">
+      Open ports only
+    </label>
+    <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);cursor:pointer;margin-left:6px;user-select:none;">
+      <input type="checkbox" id="filterHostLevel" checked onchange="resetPage(); renderTable()"
+             style="accent-color:var(--accent);width:13px;height:13px;cursor:pointer;">
+      Show host-level entries (Port 0)
+    </label>
+  </div>
+
+  <!-- TABLE META -->
+  <div class="table-meta">
+    <div class="pagination-bar">
+      <span class="filter-label">Display:</span>
+      <select class="filter-input" id="pageSizeSelect" style="width:68px;padding:6px 8px;">
+        <option value="50">50</option>
+        <option value="100">100</option>
+        <option value="150" selected>150</option>
+        <option value="200">200</option>
+        <option value="250">250</option>
+        <option value="300">300</option>
+        <option value="400">400</option>
+        <option value="500">500</option>
+      </select>
+      <button class="btn" id="btnPrevPage" style="padding:5px 9px;">‹</button>
+      <span id="pageIndicator" style="font-size:11px;color:var(--muted);white-space:nowrap;">Page 1 of 1</span>
+      <button class="btn" id="btnNextPage" style="padding:5px 9px;">›</button>
+    </div>
+    <span id="filteredCount"></span>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrapper">
+    <table>
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState">
+      <div class="big">⬡</div>
+      <p>Drop .nessus or nmap XML files above to get started.</p>
+    </div>
+    <div class="table-footer" id="tableFooter" style="display:none;">
+      <span id="footerCount"></span>
+      <span style="color:var(--border2)">·</span>
+      <span id="footerSource" style="color:var(--muted)"></span>
+    </div>
+  </div>
+
+</div>
+<footer style="text-align:center;padding:18px 28px;border-top:1px solid var(--border);background:var(--bg2);font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:12px;">
+  <span>© 2026 tunnelcat</span>
+  <span style="color:var(--border2)">·</span>
+  <a href="https://github.com/tunnelcat" target="_blank" rel="noopener"
+     style="color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 0.15s;"
+     onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">
+    <svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+               0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
+               -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66
+               .07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
+               -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27
+               .68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12
+               .51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48
+               0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+    </svg>
+    tunnelcat
+  </a>
+</footer>
+<div id="toast-container"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const state = {
+  nessusRows: [],
+  nmapRows:   [],
+  currentView: 'nessus',
+  sortCol: null,
+  sortDir: 1,
+  colWidths: {}, // key -> px width, persists across re-renders
+  pageSize: 150,
+  currentPage: 1,
+  summarySortCol: null, // 'hostnames' | 'ips' | null (Ports & Services is not sortable)
+  summarySortDir: 1,
+  autoColWidths: {}, // key -> px width, auto-fit to loaded data; overridden by colWidths once a user drags a column
+};
+const allFiles = new Map(); // fname -> { file, type }
+
+// Nessus port-discovery plugin IDs only
+const NESSUS_PORT_PLUGINS = new Set(['11219', '14274']); // SYN scanner, UDP scanner
+
+// ── THEME ─────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeIcon').textContent  = isDark ? '☾' : '☀';
+  document.getElementById('themeLabel').textContent = isDark ? 'Dark' : 'Light';
+}
+
+// ── DRAG & DROP ───────────────────────────────────────────────────────────────
+const dz    = document.getElementById('dzAll');
+const input = document.getElementById('allInput');
+
+dz.addEventListener('click', () => input.click());
+dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFiles([...e.dataTransfer.files]); });
+input.addEventListener('change', () => { handleFiles([...input.files]); input.value = ''; });
+
+function handleFiles(files) {
+  // First occurrence of a name wins, based on drop order, not whichever
+  // FileReader resolves first. A repeat (from a prior drop or this same one)
+  // never reaches readFiles, so it can't overwrite the winner's rows or type.
+  const toProcess = [];
+  const seenInThisBatch = new Set();
+  files.forEach(f => {
+    if (allFiles.has(f.name) || seenInThisBatch.has(f.name)) {
+      toast(`Duplicate filename skipped: ${f.name}`, 'warning');
+      return;
+    }
+    seenInThisBatch.add(f.name);
+    allFiles.set(f.name, { file: f, type: null });
+    toProcess.push(f);
+  });
+  if (!toProcess.length) return;
+  readFiles(toProcess);
+}
+
+function readFiles(files) {
+  files.forEach(f => {
+    if (!allFiles.has(f.name)) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const xml  = new DOMParser().parseFromString(e.target.result, 'text/xml');
+      const root = xml.documentElement;
+      let rows, detectedType;
+
+      if (root.tagName === 'NessusClientData_v2' || root.querySelector('ReportHost')) {
+        rows = parseNessus(xml, f.name); detectedType = 'nessus';
+      } else if (root.tagName === 'nmaprun' || root.querySelector('host')) {
+        rows = parseNmap(xml, f.name); detectedType = 'nmap';
+      } else {
+        toast('Unknown format: ' + f.name, 'error');
+        allFiles.delete(f.name);
+        updateFileList();
+        renderTable();
+        return;
+      }
+
+      allFiles.get(f.name).type = detectedType;
+
+      if (detectedType === 'nessus') {
+        state.nessusRows = state.nessusRows.filter(r => r._file !== f.name).concat(rows);
+      } else {
+        state.nmapRows = state.nmapRows.filter(r => r._file !== f.name).concat(rows);
+      }
+      recomputeAutoColWidths();
+
+      // Auto-switch view to show what was just loaded
+      if (detectedType === 'nessus' && !state.nmapRows.length)   setViewActive('nessus');
+      if (detectedType === 'nmap'   && !state.nessusRows.length) setViewActive('nmap');
+
+      // 0 rows usually means truncated/corrupted or empty data, so flag it
+      // as a warning instead of a normal success.
+      toast(`Parsed ${rows.length} rows from ${f.name}`, rows.length === 0 ? 'warning' : 'success');
+      updateFileList();
+      renderTable();
+    };
+    reader.readAsText(f);
+  });
+}
+
+function updateFileList() {
+  const el = document.getElementById('allFileList');
+  el.innerHTML = '';
+  allFiles.forEach(({ type }, name) => {
+    const tag = document.createElement('div');
+    const cls = type === 'nessus' ? 'ft-nessus' : type === 'nmap' ? 'ft-nmap' : '';
+    tag.className = `file-tag ${cls}`;
+    const label = type ? `[${type}] ` : '';
+    // Displayed name is truncated so a long filename can't overflow the tag;
+    // data-name keeps the full original name so removal still matches correctly.
+    const displayName = name.length > TOAST_MAX_CHARS ? name.slice(0, TOAST_MAX_CHARS) + '…' : name;
+    tag.innerHTML = `<span>${label}${esc(displayName)}</span><span class="rm" data-name="${esc(name)}">×</span>`;
+    el.appendChild(tag);
+  });
+  el.querySelectorAll('.rm').forEach(btn => {
+    btn.onclick = e => {
+      e.stopPropagation();
+      const name = btn.dataset.name;
+      const entry = allFiles.get(name);
+      if (entry) {
+        if (entry.type === 'nessus') state.nessusRows = state.nessusRows.filter(r => r._file !== name);
+        else if (entry.type === 'nmap') state.nmapRows = state.nmapRows.filter(r => r._file !== name);
+        allFiles.delete(name);
+        recomputeAutoColWidths();
+      }
+      updateFileList(); renderTable();
+    };
+  });
+}
+
+// ── PARSERS ───────────────────────────────────────────────────────────────────
+function parseNessus(doc, fname) {
+  const rows = [];
+  doc.querySelectorAll('ReportHost').forEach(host => {
+    let ip = '', hostname = '';
+    host.querySelectorAll('HostProperties tag').forEach(tag => {
+      const n = tag.getAttribute('name') || '';
+      if (n === 'host-ip'    && !ip)       ip       = tag.textContent.trim();
+      if (n === 'host-fqdn'  && !hostname) hostname = tag.textContent.trim().toLowerCase();
+      if (!hostname && n === 'hostname')     hostname = tag.textContent.trim().toLowerCase();
+      if (!hostname && n === 'netbios-name') hostname = tag.textContent.trim().toLowerCase();
+    });
+    // Fallback when there's no host-ip tag: the name attribute may be an IP
+    // or a hostname. Only use it as ip if it parses as IPv4, else keep it as
+    // hostname (wrongly landing in ip would sort as 0.0.0.0 and skip exclusions).
+    if (!ip) {
+      const nameAttr = (host.getAttribute('name') || '').trim();
+      if (isValidIPv4(nameAttr)) ip = nameAttr;
+      else if (!hostname) hostname = nameAttr.toLowerCase();
+    }
+
+    host.querySelectorAll('ReportItem').forEach(item => {
+      const port     = item.getAttribute('port')     || '';
+      const proto    = item.getAttribute('protocol') || '';
+      const svcName  = item.getAttribute('svc_name') || '';
+      const pluginId = item.getAttribute('pluginID') || '';
+      if (!NESSUS_PORT_PLUGINS.has(pluginId)) return;
+      // These plugins' plugin_output reads e.g. "Port 443/tcp was found to be
+      // open" for confirmed ports. Anything else, including port=0 host-level
+      // items, can't be confirmed from the text, so it's 'unknown', not assumed open.
+      const output = item.querySelector('plugin_output')?.textContent || '';
+      // Matches the full phrase, not just "found to be open", so negated
+      // text like "was not found to be open" doesn't false-positive.
+      const stateVal = /was found to be open/i.test(output) ? 'open' : 'unknown';
+      // Port 0 isn't a real service port, so svc_name (often "general" or a
+      // guess) doesn't mean anything here; always label it "reserved".
+      const service = port === '0' ? 'reserved' : svcName;
+      rows.push({ _file: fname, source: 'nessus', ip, hostname, protocol: proto.toLowerCase(), port, service, state: stateVal });
+    });
+  });
+  return rows;
+}
+
+function parseNmap(doc, fname) {
+  const rows = [];
+  doc.querySelectorAll('host').forEach(host => {
+    let ip = '', hostname = '';
+    host.querySelectorAll('address').forEach(addr => {
+      const t = addr.getAttribute('addrtype');
+      // Prefer IPv4 on dual-stack hosts: an IPv6 address would sort as 0.0.0.0
+      // and never match any IP/CIDR/range exclusion.
+      if (t === 'ipv4') ip = addr.getAttribute('addr') || ip;
+      else if (t === 'ipv6' && !ip) ip = addr.getAttribute('addr') || '';
+    });
+    const hn = host.querySelector('hostnames hostname');
+    if (hn) hostname = (hn.getAttribute('name') || '').toLowerCase();
+
+    const ports = host.querySelectorAll('port');
+    if (ports.length === 0) {
+      // Host has no <port> elements (e.g. scanned but nothing open/listed).
+      // Without this it would never appear in NetFold; synthesize a
+      // host-level row so it's still visible (Port 0).
+      rows.push({ _file: fname, source: 'nmap', ip, hostname, protocol: 'tcp', port: '0', service: 'reserved', state: 'unknown' });
+    }
+    ports.forEach(p => {
+      const portState = p.querySelector('state')?.getAttribute('state') || '';
+      const protocol  = p.getAttribute('protocol') || '';
+      const portid    = p.getAttribute('portid')   || '';
+      const svc       = p.querySelector('service');
+      const service   = (svc?.getAttribute('name') || '').trim();
+      rows.push({ _file: fname, source: 'nmap', ip, hostname, protocol: protocol.toLowerCase(), port: portid, service, state: portState });
+    });
+  });
+  return rows;
+}
+
+// ── EXCLUSIONS ────────────────────────────────────────────────────────────────
+function ipToNum(ip) {
+  const p = ip.split('.').map(Number);
+  return ((p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]) >>> 0;
+}
+function ipToNumSafe(ip) { try { return ipToNum(ip); } catch { return 0; } }
+
+function cidrMatch(ip, cidr) {
+  try {
+    const [base, bits] = cidr.split('/');
+    // /0 must match every IP (mask 0). Guard it explicitly: `~0 << 32` wraps to
+    // `~0 << 0` (JS shift amount is mod 32), which would wrongly build an
+    // all-ones mask and match nothing but the literal base address.
+    let mask;
+    if (bits === undefined || bits === '') mask = 0xFFFFFFFF;
+    else { const n = parseInt(bits); mask = n === 0 ? 0 : (~0 << (32 - n)) >>> 0; }
+    return (ipToNum(ip) & mask) === (ipToNum(base) & mask);
+  } catch { return false; }
+}
+
+function isHostnameRule(rule) { return /[a-zA-Z]/.test(rule); }
+
+function wildcardToRegex(pattern) {
+  const esc2 = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
+  return new RegExp('^' + esc2 + '$', 'i');
+}
+
+// Leading zeros ("001", "08") are rejected rather than normalized, since
+// their intended value is ambiguous (decimal vs. octal-looking) and silently
+// guessing wrong would make a rule match nothing without any visible error.
+function octetError(s) {
+  if (!/^\d{1,3}$/.test(s)) return `"${s}" is not a valid octet`;
+  if (s.length > 1 && s[0] === '0') return `octet "${s}" has a leading zero, which is not allowed`;
+  if (+s > 255) return `octet "${s}" is out of range (must be 0-255)`;
+  return null;
+}
+
+function ipv4Error(s) {
+  const parts = s.split('.');
+  if (parts.length !== 4) return `"${s}" is not a valid IPv4 address`;
+  for (const p of parts) {
+    const err = octetError(p);
+    if (err) return `${err} (in "${s}")`;
+  }
+  return null;
+}
+
+function isValidIPv4(s) { return ipv4Error(s) === null; }
+
+// Parses a single dot-separated octet for nmap-style range syntax: a plain
+// number ("5") or an in-order range ("1-5"). Returns [lo, hi] or null.
+function parseOctetSegment(seg) {
+  if (/^\d{1,3}$/.test(seg)) {
+    if (octetError(seg)) return null;
+    const n = +seg;
+    return [n, n];
+  }
+  const m = seg.match(/^(\d{1,3})-(\d{1,3})$/);
+  if (!m) return null;
+  if (octetError(m[1]) || octetError(m[2])) return null;
+  const lo = +m[1], hi = +m[2];
+  if (lo > hi) return null;
+  return [lo, hi];
+}
+
+// Same checks as parseOctetSegment, but returns why a segment failed instead
+// of just null, so the UI can point at the specific bad octet/range.
+function octetSegmentError(seg) {
+  if (/^\d{1,3}$/.test(seg)) return octetError(seg);
+  const m = seg.match(/^(\d{1,3})-(\d{1,3})$/);
+  if (!m) return `"${seg}" is not a valid octet or octet range`;
+  return octetError(m[1]) || octetError(m[2])
+    || (+m[1] > +m[2] ? `octet range "${seg}" is out of order (start is after end)` : null);
+}
+
+function ipInOctetRanges(ip, ranges) {
+  const octets = ip.split('.').map(Number);
+  return octets.length === 4 && ranges.every((r, i) => octets[i] >= r[0] && octets[i] <= r[1]);
+}
+
+// Classifies a single trimmed exclusion line into a compiled rule, or an
+// error message if it doesn't parse into anything sensible.
+function classifyHostRule(rule) {
+  if (isHostnameRule(rule)) {
+    const wildcard = rule.includes('*') || rule.includes('?');
+    return { rule: wildcard
+      ? { type: 'host-wild', regex: wildcardToRegex(rule) }
+      : { type: 'host-exact', value: rule.toLowerCase() } };
+  }
+  if (rule.includes('/')) {
+    const slashParts = rule.split('/');
+    if (slashParts.length !== 2) return { error: `invalid CIDR "${rule}" (unexpected extra "/")` };
+    const [base, bits] = slashParts;
+    const baseErr = ipv4Error(base);
+    if (baseErr) return { error: baseErr };
+    if (!/^\d{1,2}$/.test(bits||'') || +bits > 32) return { error: `invalid CIDR mask "/${bits}" in "${rule}" (must be 0-32)` };
+    if (bits.length > 1 && bits[0] === '0') return { error: `CIDR mask "/${bits}" in "${rule}" has a leading zero, which is not allowed` };
+    return { rule: { type: 'cidr', cidr: rule } };
+  }
+  if (rule.includes('-')) {
+    // nmap-style per-octet ranges, e.g. 1-5.1-5.1-5.1-5 or shorthand 172.16.5.1-10
+    const octets = rule.split('.');
+    if (octets.length === 4) {
+      for (const seg of octets) {
+        const segErr = octetSegmentError(seg);
+        if (segErr) return { error: `invalid octet range "${rule}": ${segErr}` };
+      }
+      return { rule: { type: 'ip-octet-range', ranges: octets.map(parseOctetSegment) } };
+    }
+    // whole-IP-to-whole-IP range, e.g. 10.0.0.1-10.0.0.50
+    const parts = rule.split('-').map(s => s.trim());
+    if (parts.length === 2 && parts[0].includes('.')) {
+      const loErr = ipv4Error(parts[0]);
+      if (loErr) return { error: loErr };
+      const hiErr = ipv4Error(parts[1]);
+      if (hiErr) return { error: hiErr };
+      const lo = ipToNumSafe(parts[0]), hi = ipToNumSafe(parts[1]);
+      if (lo > hi) return { error: `range "${rule}" is out of order (start is after end)` };
+      return { rule: { type: 'ip-range', lo, hi } };
+    }
+    return { error: `invalid rule "${rule}"` };
+  }
+  if (rule.includes('*')) {
+    const prefix = rule.replace(/\*/g, '');
+    if (prefix) return { rule: { type: 'ip-wild', prefix } };
+    return { error: `wildcard "${rule}" matches nothing and was ignored` };
+  }
+  if (rule.split('.').length === 4) {
+    const err = ipv4Error(rule);
+    if (err) return { error: err };
+  }
+  if (isValidIPv4(rule)) return { rule: { type: 'ip-exact', value: rule } };
+  return { error: `"${rule}" is not a valid IP or hostname` };
+}
+
+// Parses an exclusion textarea into a compiled rule set once per call, instead
+// of re-parsing/recompiling per row (was O(rows x rules), the main perf hot
+// spot). Also collects per-line errors for invalid rules, keyed by their
+// 1-indexed line number in the original text.
+function parseHostRules(text) {
+  const rules = [];
+  const errors = [];
+  text.split('\n').forEach((raw, i) => {
+    const rule = raw.trim();
+    if (!rule) return;
+    const { rule: parsed, error } = classifyHostRule(rule);
+    if (parsed) rules.push(parsed);
+    else errors.push({ line: i + 1, message: error });
+  });
+  return { rules, errors };
+}
+
+function matchesHostRules(rules, ip, hostname) {
+  if (!rules.length) return false;
+  const hn = (hostname || '').toLowerCase();
+  return rules.some(r => {
+    switch (r.type) {
+      case 'host-wild':  return hn && r.regex.test(hn);
+      case 'host-exact': return hn === r.value;
+      case 'cidr':       return cidrMatch(ip, r.cidr);
+      case 'ip-range':   return ipToNumSafe(ip) >= r.lo && ipToNumSafe(ip) <= r.hi;
+      case 'ip-octet-range': return ipInOctetRanges(ip, r.ranges);
+      case 'ip-wild':    return ip.startsWith(r.prefix);
+      case 'ip-exact':   return ip === r.value;
+    }
+    return false;
+  });
+}
+
+function classifyPortRule(rule) {
+  if (rule.includes('-')) {
+    const parts = rule.split('-').map(s => s.trim());
+    if (parts.length !== 2) return { error: `invalid port range "${rule}" (expected exactly one "-")` };
+    const [loStr, hiStr] = parts;
+    if (!/^\d+$/.test(loStr) || !/^\d+$/.test(hiStr)) return { error: `invalid port range "${rule}"` };
+    const lo = parseInt(loStr), hi = parseInt(hiStr);
+    if (lo > 65535 || hi > 65535) return { error: `port range "${rule}" exceeds 65535` };
+    if (lo > hi) return { error: `port range "${rule}" has start greater than end` };
+    return { rule: { range: true, lo, hi } };
+  }
+  if (!/^\d+$/.test(rule)) return { error: `"${rule}" is not a valid port number` };
+  if (+rule > 65535) return { error: `port "${rule}" exceeds 65535` };
+  return { rule: { range: false, value: parseInt(rule) } };
+}
+
+// See parseHostRules: same shape, {rules, errors} with 1-indexed line numbers.
+function parsePortRules(text) {
+  const rules = [];
+  const errors = [];
+  text.split('\n').forEach((raw, i) => {
+    const rule = raw.trim();
+    if (!rule) return;
+    const { rule: parsed, error } = classifyPortRule(rule);
+    if (parsed) rules.push(parsed);
+    else errors.push({ line: i + 1, message: error });
+  });
+  return { rules, errors };
+}
+
+function matchesPortRules(rules, port) {
+  if (!rules.length) return false;
+  const p = parseInt(port);
+  return rules.some(r => r.range ? (p >= r.lo && p <= r.hi) : r.value === p);
+}
+
+// Host part of a row's identity key. Falls back to the hostname when the IP is
+// empty (Nessus hosts with no host-ip tag), so distinct hostname-only hosts
+// don't all collapse onto the shared empty-IP key. The 'hn:' prefix can't
+// collide with a real IP string.
+function rowHostKey(r) { return r.ip || 'hn:' + r.hostname; }
+
+function applyExclusions(rows) {
+  const hostRules = parseHostRules(document.getElementById('exclHosts').value).rules;
+  const portRules = parsePortRules(document.getElementById('exclPorts').value).rules;
+
+  // Consolidate hostnames first: dedup below keeps one row per key, so a
+  // duplicate (e.g. a re-scan) with a hostname the first row lacks would
+  // otherwise silently drop that hostname. Use the first non-empty one per key.
+  const hostnameByKey = new Map();
+  for (const r of rows) {
+    if (!r.hostname) continue;
+    const k = `${rowHostKey(r)}|${r.protocol}|${r.port}|${r.source}`;
+    if (!hostnameByKey.has(k)) hostnameByKey.set(k, r.hostname);
+  }
+
+  // Dedup, preferring 'open' when duplicates disagree on state, so a re-scan
+  // that found a port open isn't discarded just because an older, less
+  // complete file happened to load first.
+  const byKey = new Map();
+  for (const r of rows) {
+    const k = `${rowHostKey(r)}|${r.protocol}|${r.port}|${r.source}`;
+    const prev = byKey.get(k);
+    if (!prev) { byKey.set(k, r); continue; }
+    const prevOpen = (prev.state || '').toLowerCase() === 'open';
+    const curOpen  = (r.state    || '').toLowerCase() === 'open';
+    if (!prevOpen && curOpen) byKey.set(k, r);
+  }
+
+  const result = [];
+  for (const r of byKey.values()) {
+    const k = `${rowHostKey(r)}|${r.protocol}|${r.port}|${r.source}`;
+    const hostname = r.hostname || hostnameByKey.get(k) || '';
+    if (matchesHostRules(hostRules, r.ip, hostname) || matchesPortRules(portRules, r.port)) continue;
+    result.push(hostname === r.hostname ? r : { ...r, hostname });
+  }
+  return result;
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function applyFilters(rows) {
+  const fIP      = document.getElementById('filterIP').value.trim().toLowerCase();
+  const fPort    = document.getElementById('filterPort').value.trim();
+  const fService = document.getElementById('filterService').value.trim().toLowerCase();
+  const fProto   = document.getElementById('filterProto').value.trim().toLowerCase();
+  const openOnly = document.getElementById('filterOpenOnly').checked;
+  const showHostLevel = document.getElementById('filterHostLevel').checked;
+
+  return rows.filter(r => {
+    const isHostLevel = r.port === '0';
+    // "Show host-level entries" only decides whether port-0 rows are
+    // eligible to show. It must not skip the filters below, or searching
+    // for a specific host would still surface every other host's port-0 row.
+    if (isHostLevel && !showHostLevel) return false;
+    // Open ports only skips host-level rows: their state is almost always
+    // 'unknown' since port 0 isn't real, so requiring 'open' would hide them
+    // even with the checkbox on. For real rows, nmap needs open+tcp/udp;
+    // nessus and merged 'both' rows now carry a real state too.
+    if (openOnly && !isHostLevel) {
+      const st = (r.state || '').toLowerCase();
+      if (r.source === 'nmap') {
+        const proto = (r.protocol || '').toLowerCase();
+        if (!(st === 'open' && (proto === 'tcp' || proto === 'udp'))) return false;
+      } else if (st !== 'open') return false;
+    }
+    if (fIP      && !r.ip.includes(fIP) && !(r.hostname||'').toLowerCase().includes(fIP)) return false;
+    if (fPort    && r.port !== fPort) return false;
+    if (fService && !(r.service||'').toLowerCase().includes(fService)) return false;
+    if (fProto   && !(r.protocol||'').toLowerCase().includes(fProto)) return false;
+    return true;
+  });
+}
+
+// ── SORTING ───────────────────────────────────────────────────────────────────
+function defaultSort(a, b) {
+  const aHn = a.hostname || '', bHn = b.hostname || '';
+  if (aHn && !bHn) return -1;
+  if (!aHn && bHn) return  1;
+  if (aHn && bHn) { const c = aHn.localeCompare(bHn); if (c) return c; }
+  const ic = ipToNumSafe(a.ip) - ipToNumSafe(b.ip);
+  if (ic) return ic;
+  return (parseInt(a.port)||0) - (parseInt(b.port)||0);
+}
+
+function sortRows(rows) {
+  const col = state.sortCol;
+  return [...rows].sort((a, b) => {
+    if (!col) return defaultSort(a, b);
+    let av = a[col]||'', bv = b[col]||'';
+    if (col === 'port') { av=parseInt(av)||0; bv=parseInt(bv)||0; return (av-bv)*state.sortDir; }
+    if (col === 'ip')   { return (ipToNumSafe(av)-ipToNumSafe(bv))*state.sortDir; }
+    const cmp = av.toString().localeCompare(bv.toString());
+    if (cmp) return cmp * state.sortDir;
+    return defaultSort(a, b);
+  });
+}
+
+// ── COLUMNS ───────────────────────────────────────────────────────────────────
+const COLS_NESSUS   = ['ip','hostname','protocol','port','service','state'];
+const COLS_NMAP     = ['ip','hostname','protocol','port','service','state'];
+const COLS_COMBINED = ['source','ip','hostname','protocol','port','service','state'];
+const COL_LABELS = {
+  source:'Source', ip:'IP Address', hostname:'Hostname', protocol:'Proto',
+  port:'Port', service:'Service', state:'State'
+};
+const COL_CLASS = {
+  source:'col-src', ip:'col-ip', hostname:'col-host', protocol:'col-proto',
+  port:'col-port', service:'col-svc', state:'col-state'
+};
+
+// ── COMBINED MERGE ────────────────────────────────────────────────────────────
+// Collapses rows sharing host+hostname+proto+port+state across sources into
+// one row with source='both'. Hostname is part of the match key, so a host
+// with two different non-empty hostnames across sources (Nessus FQDN vs Nmap
+// PTR) stays as two separate rows rather than dropping one name. An empty
+// hostname from one source does not backfill from the other; it's just a
+// distinct key value, so that case also stays split rather than merging.
+function mergeCombinedRows(rows) {
+  const map = new Map();
+  rows.forEach(r => {
+    const k = `${rowHostKey(r)}|${(r.hostname||'').toLowerCase()}|${r.protocol}|${r.port}|${(r.state||'').toLowerCase()}`;
+    if (!map.has(k)) {
+      map.set(k, { ...r, _nessusService: null, _nmapService: null });
+    }
+    const m = map.get(k);
+    if (r.source === 'nessus') m._nessusService = r.service || '';
+    if (r.source === 'nmap')   m._nmapService   = r.service || '';
+  });
+
+  const result = [];
+  for (const m of map.values()) {
+    const hasBoth = m._nessusService !== null && m._nmapService !== null;
+    if (hasBoth) {
+      const ns = m._nessusService, nm = m._nmapService;
+      // Skip duplicating identical (or empty) service names
+      let service;
+      if (!ns && !nm)        service = '';
+      else if (!ns)          service = nm;
+      else if (!nm)          service = ns;
+      else if (ns === nm)    service = ns;
+      else                   service = `${ns} / ${nm}`;
+      result.push({ ...m, source: 'both', service });
+      continue;
+    }
+    // Single source: set source badge correctly
+    m.source = m._nessusService !== null ? 'nessus' : 'nmap';
+    m.service = m._nessusService !== null ? (m._nessusService || '') : (m._nmapService || '');
+    result.push(m);
+  }
+  return result;
+}
+
+
+// ── SUMMARY GROUPING (union-find) ─────────────────────────────────────────────
+function buildSummaryGroups(rows) {
+  // Nodes are prefixed strings: 'ip:1.2.3.4' or 'hn:host.lan'
+  const parent = new Map();
+
+  function find(x) {
+    if (!parent.has(x)) parent.set(x, x);
+    if (parent.get(x) !== x) parent.set(x, find(parent.get(x)));
+    return parent.get(x);
+  }
+  function union(a, b) {
+    const ra = find(a), rb = find(b);
+    if (ra !== rb) parent.set(ra, rb);
+  }
+
+  // A row anchors on its IP node, or its hostname node when the IP is empty
+  // (Nessus hosts with no host-ip tag). Anchoring empty-IP rows on 'ip:'
+  // would union every hostname-only host into one giant group.
+  const anchor = r => r.ip ? 'ip:' + r.ip : 'hn:' + r.hostname;
+
+  // Build edges: for each row, connect its IP node to its hostname node (if any)
+  rows.forEach(r => {
+    const node = anchor(r);
+    find(node); // ensure registered
+    if (r.ip && r.hostname) union(node, 'hn:' + r.hostname);
+  });
+
+  // Group rows by their root
+  const groups = new Map(); // root -> { ips, hostnames, ports }
+  rows.forEach(r => {
+    const root = find(anchor(r));
+    if (!groups.has(root)) groups.set(root, { ips: new Set(), hostnames: new Set(), ports: new Map() });
+    const g = groups.get(root);
+    if (r.ip) g.ips.add(r.ip); // empty IP would render as a blank line and count as a "unique IP" in stats
+    if (r.hostname) g.hostnames.add(r.hostname);
+    // Port key: proto|port
+    const pk = r.protocol + '|' + r.port;
+    if (!g.ports.has(pk)) g.ports.set(pk, { protocol: r.protocol, port: r.port, services: new Set() });
+    if (r.service) r.service.split(' / ').forEach(s => { if (s.trim()) g.ports.get(pk).services.add(s.trim()); });
+  });
+
+  // Convert to sorted arrays
+  const result = [...groups.values()].map(g => ({
+    ips:       [...g.ips].sort((a,b) => ipToNumSafe(a) - ipToNumSafe(b)),
+    hostnames: [...g.hostnames].sort(),
+    ports:     [...g.ports.values()].sort((a,b) => {
+      if (a.protocol !== b.protocol) return a.protocol.localeCompare(b.protocol);
+      return (parseInt(a.port)||0) - (parseInt(b.port)||0);
+    }),
+  }));
+
+  // Sort groups: alpha by first hostname, then numeric by first IP
+  result.sort((a, b) => {
+    const aHn = a.hostnames[0] || '', bHn = b.hostnames[0] || '';
+    if (aHn && !bHn) return -1;
+    if (!aHn && bHn) return  1;
+    if (aHn && bHn) { const c = aHn.localeCompare(bHn); if (c) return c; }
+    return ipToNumSafe(a.ips[0]) - ipToNumSafe(b.ips[0]);
+  });
+
+  return result;
+}
+
+// Sorts by Hostnames or IP Addresses on the Summary tab (Ports & Services has
+// no sort order). Falls back to buildSummaryGroups' default ordering.
+function sortSummaryGroups(groups) {
+  const col = state.summarySortCol;
+  if (!col) return groups;
+  return [...groups].sort((a, b) => {
+    let cmp;
+    if (col === 'hostnames') {
+      const aHn = a.hostnames[0] || '', bHn = b.hostnames[0] || '';
+      if (!aHn && bHn) cmp = 1;
+      else if (aHn && !bHn) cmp = -1;
+      else cmp = aHn.localeCompare(bHn);
+    } else { // 'ips'
+      cmp = ipToNumSafe(a.ips[0]) - ipToNumSafe(b.ips[0]);
+    }
+    return cmp * state.summarySortDir;
+  });
+}
+
+// Eye / eye-slash icons for the Summary tab's per-row show/hide-ports toggle.
+const ICON_EYE = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const ICON_EYE_OFF = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a20.3 20.3 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
+// ── PAGINATION ────────────────────────────────────────────────────────────────
+// Paging only affects what's rendered to the DOM. Exports/copy always
+// recompute the full unpaginated result via getExportData().
+function paginationInfo(totalCount) {
+  const totalPages = Math.max(1, Math.ceil(totalCount / state.pageSize));
+  if (state.currentPage > totalPages) state.currentPage = totalPages;
+  if (state.currentPage < 1) state.currentPage = 1;
+  return totalPages;
+}
+function paginate(arr) {
+  const start = (state.currentPage - 1) * state.pageSize;
+  return arr.slice(start, start + state.pageSize);
+}
+function updatePaginationUI(totalCount, totalPages) {
+  document.getElementById('pageIndicator').textContent = totalCount ? `Page ${state.currentPage} of ${totalPages}` : 'Page 0 of 0';
+  document.getElementById('btnPrevPage').disabled = state.currentPage <= 1;
+  document.getElementById('btnNextPage').disabled = state.currentPage >= totalPages;
+}
+function resetPage() { state.currentPage = 1; }
+
+// pageGroups: the slice to render. filteredCount: total matched groups
+// (pre-pagination), used for the "X groups" label and empty-state check.
+// Shared with getExportData()'s summary branch so CSV/copy output uses the
+// same "first N ports + X more" truncation as the on-screen table.
+const MAX_VISIBLE_PORTS = 35;
+
+function renderSummary(pageGroups, filteredCount, totalGroups, body, empty, footer) {
+  // Header is built before the empty-state check so switching to the Summary
+  // tab with no matching data doesn't leave a stale header from another tab.
+  const hostSorted = state.summarySortCol === 'hostnames';
+  const ipSorted    = state.summarySortCol === 'ips';
+  const hostIcon    = hostSorted ? (state.summarySortDir===1?'↑':'↓') : '↕';
+  const ipIcon      = ipSorted   ? (state.summarySortDir===1?'↑':'↓') : '↕';
+
+  document.getElementById('tableHead').innerHTML = `<tr>
+    <th style="width:44px;cursor:default;" title="Show/hide a host's ports">
+      <span style="display:inline-flex;color:var(--muted);">${ICON_EYE}</span>
+    </th>
+    <th class="sum-col-hosts${hostSorted?' sorted':''}" data-sumcol="hostnames">Hostnames <span class="sort-icon">${hostIcon}</span></th>
+    <th class="sum-col-ips${ipSorted?' sorted':''}" data-sumcol="ips">IP Addresses <span class="sort-icon">${ipIcon}</span></th>
+    <th class="sum-col-ports" style="cursor:default;">Ports &amp; Services</th>
+  </tr>`;
+  const sumHeadRow = document.getElementById('tableHead').querySelector('tr');
+  sumHeadRow.querySelectorAll('th').forEach(th => { th.onclick = null; });
+  sumHeadRow.querySelectorAll('th[data-sumcol]').forEach(th => {
+    th.onclick = () => {
+      const col = th.dataset.sumcol;
+      if (state.summarySortCol === col) state.summarySortDir *= -1;
+      else { state.summarySortCol = col; state.summarySortDir = 1; }
+      resetPage();
+      renderTable();
+    };
+  });
+  makeColumnsResizable(sumHeadRow, (th, i) => ['sum-toggle-col','sum-hosts','sum-ips','sum-ports'][i]);
+
+  // Update "N groups" labels before the empty-result early return, so
+  // filtering to zero groups doesn't leave this label frozen on the old count.
+  const groupStr = `${filteredCount} groups${filteredCount < totalGroups ? ' (filtered from ' + totalGroups + ')' : ''}`;
+  document.getElementById('footerCount').textContent  = groupStr;
+  document.getElementById('footerSource').textContent =
+    `Nessus: ${state.nessusRows.length}  ·  Nmap: ${state.nmapRows.length}`;
+  document.getElementById('filteredCount').textContent =
+    `${groupStr}  ·  Nessus: ${state.nessusRows.length}  ·  Nmap: ${state.nmapRows.length}`;
+
+  if (!filteredCount) {
+    body.innerHTML = '';
+    empty.style.display  = 'block';
+    footer.style.display = 'none';
+    return;
+  }
+  empty.style.display  = 'none';
+  footer.style.display = 'flex';
+
+  body.innerHTML = pageGroups.map((g, idx) => {
+    const hostsHtml = g.hostnames.length
+      ? g.hostnames.map((h, i) => `<span class="sum-line sum-host${i>0?' sum-extra':''}">${fmtHost(h)}</span>`).join('')
+      : `<span class="sum-line" style="color:var(--border2)">—</span>`;
+
+    const ipsHtml = g.ips.length
+      ? g.ips.map((ip, i) => `<span class="sum-line sum-ip${i>0?' sum-extra':''}">${esc(ip)}</span>`).join('')
+      : `<span class="sum-line" style="color:var(--border2)">—</span>`;
+
+    const chip = p => {
+      const proto  = p.protocol || '';
+      const ppCls  = proto==='tcp' ? 'sum-pp-tcp' : proto==='udp' ? 'sum-pp-udp' : 'sum-pp-other';
+      const svcStr = p.services.size ? [...p.services].join(' / ') : '';
+      return `<span class="sum-port-chip">
+        <span class="sum-proto-port ${ppCls}">${esc(proto)}/${esc(p.port)}</span>
+        ${svcStr ? `<span class="sum-svc">${esc(svcStr)}</span>` : ''}
+      </span>`;
+    };
+
+    const visiblePorts = g.ports.slice(0, MAX_VISIBLE_PORTS);
+    const extraPorts   = g.ports.slice(MAX_VISIBLE_PORTS);
+    const chipsHtml = `<div class="sum-ports-grid">${visiblePorts.map(chip).join('')}${
+      extraPorts.length ? `<span class="sum-port-extra-group hidden" id="portsExtra-${idx}">${extraPorts.map(chip).join('')}</span>` : ''
+    }</div>${
+      extraPorts.length ? `<button type="button" class="sum-more-btn" data-idx="${idx}">+${extraPorts.length} more</button>` : ''
+    }`;
+
+    const portCount = g.ports.length;
+    const toggleTitleBase = `${portCount} port${portCount!==1?'s':''}`;
+    return `<tr class="sum-row" data-idx="${idx}">
+      <td style="width:44px;padding:8px 6px 8px 10px;vertical-align:top;">
+        <span class="sum-toggle" data-title-base="${esc(toggleTitleBase)}" title="${esc(toggleTitleBase)}, click to hide">${ICON_EYE}</span>
+      </td>
+      <td class="sum-col-hosts" style="vertical-align:top;">${hostsHtml}</td>
+      <td class="sum-col-ips"   style="vertical-align:top;">${ipsHtml}</td>
+      <td class="sum-col-ports" style="vertical-align:top;white-space:normal;">${chipsHtml}</td>
+    </tr>`;
+  }).join('');
+
+  // Wire up collapse toggles
+  body.querySelectorAll('.sum-row').forEach(row => {
+    const toggle = row.querySelector('.sum-toggle');
+    toggle.addEventListener('click', () => {
+      const collapsed = row.classList.toggle('collapsed');
+      toggle.innerHTML = collapsed ? ICON_EYE_OFF : ICON_EYE;
+      const base = toggle.dataset.titleBase;
+      toggle.title = collapsed ? `${base}, click to show` : `${base}, click to hide`;
+    });
+  });
+
+  // Wire up "show more" ports toggles
+  body.querySelectorAll('.sum-more-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const extra = document.getElementById('portsExtra-' + btn.dataset.idx);
+      const nowHidden = extra.classList.toggle('hidden');
+      const count = extra.children.length;
+      btn.textContent = nowHidden ? `+${count} more` : 'Show less';
+    });
+  });
+
+}
+
+
+function renderTable() {
+  const v = state.currentView;
+
+  // Combined pipeline, computed once and shared by the stats bar, Summary,
+  // and Combined view. Merge happens before filters: filtering first could
+  // drop one source's row while the matching row from the other passed, so
+  // the merge would never see both sides and would report 'nessus'/'nmap'
+  // instead of 'both'.
+  const combinedRaw      = [...state.nessusRows, ...state.nmapRows];
+  const combinedExcluded = applyExclusions(combinedRaw);
+  const combinedMergedAll = mergeCombinedRows(combinedExcluded);
+  const combinedFiltered = applyFilters(combinedMergedAll);
+  const combinedGroups   = buildSummaryGroups(combinedFiltered);
+  updateStats(combinedGroups);
+
+  const body   = document.getElementById('tableBody');
+  const empty  = document.getElementById('emptyState');
+  const footer = document.getElementById('tableFooter');
+
+  if (v === 'summary') {
+    const totalGroups   = buildSummaryGroups(combinedMergedAll).length;
+    const sortedGroups  = sortSummaryGroups(combinedGroups);
+    const totalPages    = paginationInfo(sortedGroups.length);
+    renderSummary(paginate(sortedGroups), sortedGroups.length, totalGroups, body, empty, footer);
+    updatePaginationUI(sortedGroups.length, totalPages);
+    return;
+  }
+
+  let rows;
+  if (v === 'combined') {
+    rows = combinedFiltered;
+  } else {
+    rows = v === 'nessus' ? [...state.nessusRows] : [...state.nmapRows];
+    rows = applyExclusions(rows);
+    rows = applyFilters(rows);
+  }
+  rows = sortRows(rows);
+
+  const cols = v === 'nessus' ? COLS_NESSUS : v === 'nmap' ? COLS_NMAP : COLS_COMBINED;
+
+  // Header
+  const head = document.getElementById('tableHead');
+  head.innerHTML = `<tr>${cols.map((c, i) => {
+    const sorted = state.sortCol === c;
+    const icon = sorted ? (state.sortDir===1?'↑':'↓') : '↕';
+    // Last column is always "auto" width, so it absorbs remaining space
+    // instead of every column re-stretching when one gets resized.
+    const cls = i === cols.length - 1 ? 'col-auto' : COL_CLASS[c];
+    return `<th class="${cls}${sorted?' sorted':''}" data-col="${c}">${COL_LABELS[c]} <span class="sort-icon">${icon}</span></th>`;
+  }).join('')}</tr>`;
+  head.querySelectorAll('th').forEach(th => {
+    th.onclick = () => {
+      if (state.sortCol === th.dataset.col) state.sortDir *= -1;
+      else { state.sortCol = th.dataset.col; state.sortDir = 1; }
+      resetPage();
+      renderTable();
+    };
+  });
+  makeColumnsResizable(head.querySelector('tr'), th => 'col-' + (th.dataset.col || ''));
+
+  // Footer/summary labels update before the empty-result check, so filtering
+  // to zero rows doesn't leave the "N rows" label frozen on the old count.
+  const totalRaw = (v==='nessus' ? state.nessusRows : v==='nmap' ? state.nmapRows : [...state.nessusRows,...state.nmapRows]).length;
+  const footerStr = `${rows.length} rows${rows.length<totalRaw?' (filtered from '+totalRaw+')':''}`;
+  document.getElementById('footerCount').textContent  = footerStr;
+  document.getElementById('footerSource').textContent = v==='combined'
+    ? `Nessus: ${state.nessusRows.length}  ·  Nmap: ${state.nmapRows.length}`
+    : v;
+  document.getElementById('filteredCount').textContent = v==='combined'
+    ? `${footerStr}  ·  Nessus: ${state.nessusRows.length}  ·  Nmap: ${state.nmapRows.length}`
+    : footerStr;
+
+  if (!rows.length) {
+    body.innerHTML = '';
+    empty.style.display  = 'block';
+    footer.style.display = 'none';
+    updatePaginationUI(0, 1);
+    return;
+  }
+  empty.style.display  = 'none';
+  footer.style.display = 'flex';
+
+  const totalPages = paginationInfo(rows.length);
+  const pageRows   = paginate(rows);
+  body.innerHTML = pageRows.map(r => `<tr>${cols.map(c => renderCell(r, c)).join('')}</tr>`).join('');
+  updatePaginationUI(rows.length, totalPages);
+}
+
+function renderCell(r, c) {
+  if (c==='source')   return `<td><span class="badge badge-${r.source}">${r.source}</span></td>`;
+  if (c==='ip')       return `<td class="ip-text">${esc(r.ip)}</td>`;
+  if (c==='hostname') return `<td class="host-text">${fmtHost(r.hostname)}</td>`;
+  if (c==='protocol') {
+    const p = r.protocol||'';
+    return `<td><span class="proto-badge proto-${p==='tcp'?'tcp':p==='udp'?'udp':'other'}">${esc(p||'—')}</span></td>`;
+  }
+  if (c==='port')    return `<td class="port-num">${esc(r.port)}</td>`;
+  if (c==='service') return `<td>${esc(r.service||'—')}</td>`;
+  if (c==='state') {
+    const s = (r.state||'').toLowerCase();
+    return `<td class="${s==='open'?'state-open':s==='closed'?'state-closed':s==='filtered'?'state-filtered':s==='unknown'?'state-unknown':''}">${esc(r.state||'—')}</td>`;
+  }
+  return `<td>${esc(r[c]||'')}</td>`;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Wraps hostnames/FQDNs with a title attribute so the full value is always
+// available as a tooltip. CSS ellipsis (.host-cell-text) handles the visual
+// abbreviation; setting title unconditionally avoids per-row layout cost.
+function fmtHost(h) {
+  if (!h) return '—';
+  return `<span class="host-cell-text" title="${esc(h)}">${esc(h)}</span>`;
+}
+
+// Suppresses the click that fires right after a column-resize drag ends, so
+// releasing the mouse over a sortable header doesn't also trigger sort.
+// Registered once, globally, in the capture phase (runs before the header's
+// own bubble-phase onclick). Only acts on clicks landing on a <th>, since an
+// earlier version swallowed the next click anywhere in the document.
+let suppressNextHeaderClick = false;
+document.addEventListener('click', e => {
+  if (suppressNextHeaderClick) {
+    suppressNextHeaderClick = false;
+    if (e.target.closest('th')) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }
+}, true);
+
+// ── AUTO COLUMN WIDTHS ────────────────────────────────────────────────────────
+// Sizes each column to fit its actual field content (e.g. hostnames get more
+// room than proto/port). Recomputed only when loaded data changes (initial
+// load, file add/remove, clear), not on filter/sort/page interactions, and
+// only applied to columns the user hasn't manually resized (state.colWidths
+// always wins, see makeColumnsResizable).
+let _measureCtx = null;
+function measureTextWidth(text, font) {
+  if (!_measureCtx) _measureCtx = document.createElement('canvas').getContext('2d');
+  _measureCtx.font = font;
+  return _measureCtx.measureText(text).width;
+}
+
+// Canvas text measurement isn't reliable for the header row: this page sets
+// `zoom: 1.25` on <html>, and canvas glyph metrics ignore that (plus the real
+// letter-spacing/uppercase/sort-icon markup), which clipped the sort arrow to
+// "…". Instead, render the real header markup into a hidden off-screen ruler
+// table (matched by the same `thead th` CSS rule) and read its rendered width.
+let _headerRuler = null;
+function measureRenderedHeaderWidth(labelText) {
+  if (!_headerRuler) {
+    const table = document.createElement('table');
+    table.style.cssText = 'position:absolute; visibility:hidden; top:-9999px; left:-9999px; width:auto; table-layout:auto; border-collapse:collapse;';
+    table.innerHTML = '<thead><tr><th></th></tr></thead>';
+    document.body.appendChild(table);
+    _headerRuler = table.querySelector('th');
+  }
+  let maxW = 0;
+  ['↕', '↑', '↓'].forEach(icon => {
+    _headerRuler.innerHTML = `${esc(labelText)} <span class="sort-icon">${esc(icon)}</span>`;
+    maxW = Math.max(maxW, _headerRuler.scrollWidth);
+  });
+  return maxW;
+}
+
+const CELL_FONT    = "12px 'JetBrains Mono', 'Fira Code', monospace";
+const AUTO_COL_MIN = 60;
+const AUTO_COL_MAX = 420;
+const CELL_HPAD     = 28; // td left+right padding
+const HEADER_SAFETY = 10; // buffer on top of measured header width; covers the resize handle's 3px border overlap
+const BADGE_HPAD     = 22; // extra room for pill-styled cells (protocol/state/source)
+const BADGE_COLS    = new Set(['protocol', 'state', 'source']);
+
+// Seeds a sensible width before any data is loaded (e.g. hostnames run much
+// longer than "tcp" or "443").
+const FIELD_BASELINE_SAMPLE = {
+  ip: '255.255.255.255',
+  hostname: 'db01.internal.corp.example.com',
+  protocol: 'tcp',
+  port: '65535',
+  service: 'https-alt',
+  state: 'filtered',
+  source: 'nessus',
+};
+
+const FIELD_GETTERS = {
+  source:   r => r.source || '',
+  ip:       r => r.ip || '',
+  hostname: r => r.hostname || '—',
+  protocol: r => r.protocol || '—',
+  port:     r => r.port || '',
+  service:  r => r.service || '—',
+  state:    r => r.state || '—',
+};
+
+function autoWidthForValues(values, headerLabel) {
+  let maxContentPx = 0;
+  const sample = values.length > 500 ? values.slice(0, 500) : values;
+  sample.forEach(v => {
+    const w = measureTextWidth(v, CELL_FONT);
+    if (w > maxContentPx) maxContentPx = w;
+  });
+  const headerPx = measureRenderedHeaderWidth(headerLabel) + HEADER_SAFETY;
+  const contentPx = maxContentPx + CELL_HPAD;
+  return Math.round(Math.min(AUTO_COL_MAX, Math.max(AUTO_COL_MIN, Math.max(contentPx, headerPx))));
+}
+
+function recomputeAutoColWidths() {
+  const combinedRaw = mergeCombinedRows([...state.nessusRows, ...state.nmapRows]);
+  const widths = {};
+
+  ['ip', 'hostname', 'protocol', 'port', 'service', 'state', 'source'].forEach(c => {
+    const getter = FIELD_GETTERS[c];
+    const values = [FIELD_BASELINE_SAMPLE[c], ...combinedRaw.map(r => String(getter(r)))];
+    let w = autoWidthForValues(values, COL_LABELS[c]);
+    if (BADGE_COLS.has(c)) w += BADGE_HPAD;
+    widths['col-' + c] = w;
+  });
+
+  const groups = buildSummaryGroups(combinedRaw);
+  widths['sum-hosts'] = autoWidthForValues(
+    [FIELD_BASELINE_SAMPLE.hostname, ...groups.flatMap(g => g.hostnames)], 'Hostnames');
+  widths['sum-ips'] = autoWidthForValues(
+    [FIELD_BASELINE_SAMPLE.ip, ...groups.flatMap(g => g.ips)], 'IP Addresses');
+
+  state.autoColWidths = widths;
+}
+
+// ── COLUMN RESIZING ───────────────────────────────────────────────────────────
+// Makes each <th> in the current <thead> draggable-resizable (except the last
+// one) and persists widths in state.colWidths keyed by a caller-supplied key
+// (survives re-renders/view switches). The rightmost column gets no handle
+// and no explicit width, since it's the "auto" column that absorbs whatever
+// space is left, so dragging another column's border moves only that boundary.
+function makeColumnsResizable(theadRow, keyFn) {
+  const ths = [...theadRow.children];
+  ths.forEach((th, i) => {
+    if (i === ths.length - 1) return; // rightmost column: no handle, stays auto-width
+    const key = keyFn(th, i);
+    if (!key) return;
+    const presetWidth = state.colWidths[key] || state.autoColWidths[key];
+    if (presetWidth) th.style.width = presetWidth + 'px';
+
+    const handle = document.createElement('span');
+    handle.className = 'col-resize-handle';
+    th.appendChild(handle);
+
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startWidth = th.offsetWidth;
+      handle.classList.add('resizing');
+      document.body.style.userSelect = 'none';
+
+      function onMove(ev) {
+        const w = Math.max(40, startWidth + (ev.clientX - startX));
+        th.style.width = w + 'px';
+      }
+      function onUp() {
+        state.colWidths[key] = th.offsetWidth;
+        handle.classList.remove('resizing');
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        suppressNextHeaderClick = true;
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
+// Takes already-computed groups (see renderTable) instead of recomputing the
+// exclude/filter/merge/group pipeline itself on every render.
+function updateStats(groups) {
+  const uniqueIPs       = new Set(groups.flatMap(g => g.ips)).size;
+  const uniqueHostnames = new Set(groups.flatMap(g => g.hostnames)).size;
+  // Port 0 isn't a real port (it's the host-level entry marker), so it's
+  // excluded here even when "Show host-level entries" is on.
+  const uniquePorts = new Set(groups.flatMap(g => g.ports
+    .filter(p => p.port !== '0')
+    .map(p => p.protocol + '/' + p.port))).size;
+
+  document.getElementById('statHosts').textContent     = uniqueIPs;
+  document.getElementById('statHostnames').textContent = uniqueHostnames;
+  document.getElementById('statPorts').textContent     = uniquePorts;
+}
+
+// ── EXPORT HELPERS ────────────────────────────────────────────────────────────
+const COLS_SUMMARY   = ['hostnames','ips','ports','services'];
+const COL_LABELS_SUM = { hostnames:'Hostnames', ips:'IP Addresses', ports:'Ports', services:'Services' };
+
+function getExportData() {
+  const v = state.currentView;
+
+  if (v === 'summary') {
+    // Merge before filter, see the comment in renderTable's combined pipeline.
+    const allRows  = applyExclusions([...state.nessusRows, ...state.nmapRows]);
+    const merged   = mergeCombinedRows(allRows);
+    const filtered = applyFilters(merged);
+    const groups   = buildSummaryGroups(filtered);
+    // Cap ports/services at MAX_VISIBLE_PORTS, matching the on-screen table,
+    // so a host with hundreds of ports doesn't dump them all into one cell.
+    const rows = groups.map(g => {
+      const visiblePorts = g.ports.slice(0, MAX_VISIBLE_PORTS);
+      const extraCount   = g.ports.length - visiblePorts.length;
+      const portLines    = visiblePorts.map(p => `${p.protocol}/${p.port}`);
+      const serviceLines = visiblePorts.map(p => p.services.size ? [...p.services].join(' / ') : '-');
+      if (extraCount > 0) {
+        portLines.push(`+${extraCount} more`);
+        serviceLines.push('');
+      }
+      return {
+        hostnames: g.hostnames.join('\n') || '-',
+        ips:       g.ips.join('\n') || '-',
+        ports:     portLines.join('\n'),
+        services:  serviceLines.join('\n'),
+      };
+    });
+    return { rows, cols: COLS_SUMMARY, labels: COL_LABELS_SUM };
+  }
+
+  let rows = v==='nessus' ? [...state.nessusRows]
+           : v==='nmap'   ? [...state.nmapRows]
+           :                [...state.nessusRows,...state.nmapRows];
+  rows = applyExclusions(rows);
+  if (v === 'combined') rows = mergeCombinedRows(rows); // merge before filter, see comment above
+  rows = applyFilters(rows);
+  rows = sortRows(rows);
+  const cols = v==='nessus' ? COLS_NESSUS : v==='nmap' ? COLS_NMAP : COLS_COMBINED;
+  return { rows, cols, labels: COL_LABELS };
+}
+
+// ── VIEW TOGGLE ───────────────────────────────────────────────────────────────
+function setViewActive(v) {
+  state.currentView = v;
+  resetPage();
+  document.querySelectorAll('#viewToggle button').forEach(b => b.classList.toggle('active', b.dataset.view===v));
+  const copyBtn = document.getElementById('btnCopy');
+  const isSummary = v === 'summary';
+  copyBtn.disabled       = isSummary;
+  copyBtn.style.opacity  = isSummary ? '0.35' : '';
+  copyBtn.style.cursor   = isSummary ? 'not-allowed' : '';
+  copyBtn.title          = isSummary ? 'Not available in Summary view' : '';
+  renderTable();
+}
+document.getElementById('viewToggle').querySelectorAll('button').forEach(b => {
+  b.onclick = () => setViewActive(b.dataset.view);
+});
+
+// Debounce so typing in filters/exclusions doesn't re-run the full
+// exclude/filter/merge/group/render pipeline on every keystroke.
+function debounce(fn, delay) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+const renderTableDebounced = debounce(renderTable, 300);  // debounce time in ms
+
+// ── EXCLUSION PANEL ───────────────────────────────────────────────────────────
+document.getElementById('btnExclusions').onclick = () => document.getElementById('exclusionPanel').classList.toggle('open');
+
+function updateLineNumbers(textarea, gutter) {
+  const lines = textarea.value.split('\n').length;
+  let out = '';
+  for (let i = 1; i <= lines; i++) out += i + '\n';
+  gutter.textContent = out;
+}
+
+function renderExclusionErrors(box, errors) {
+  if (!errors.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'block';
+  box.innerHTML = errors.map(e =>
+    `<div class="excl-error-line"><span class="excl-error-tag">Error:</span> Line ${e.line}: ${esc(e.message)}</div>`
+  ).join('');
+}
+
+function wireExclusionField(textareaId, gutterId, errorsBoxId, parseFn) {
+  const textarea = document.getElementById(textareaId);
+  const gutter    = document.getElementById(gutterId);
+  const errorsBox = document.getElementById(errorsBoxId);
+
+  function refresh() {
+    updateLineNumbers(textarea, gutter);
+    renderExclusionErrors(errorsBox, parseFn(textarea.value).errors);
+  }
+
+  textarea.addEventListener('input', () => { refresh(); resetPage(); renderTableDebounced(); });
+  textarea.addEventListener('scroll', () => { gutter.scrollTop = textarea.scrollTop; });
+  refresh();
+}
+
+wireExclusionField('exclHosts', 'exclHostsLineNos', 'exclHostsErrors', parseHostRules);
+wireExclusionField('exclPorts', 'exclPortsLineNos', 'exclPortsErrors', parsePortRules);
+
+// ── FILTER INPUTS ─────────────────────────────────────────────────────────────
+['filterIP','filterPort','filterService','filterProto'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => { resetPage(); renderTableDebounced(); });
+});
+
+// ── PAGINATION CONTROLS ───────────────────────────────────────────────────────
+document.getElementById('pageSizeSelect').addEventListener('change', e => {
+  state.pageSize = parseInt(e.target.value) || 150;
+  resetPage();
+  renderTable();
+});
+document.getElementById('btnPrevPage').onclick = () => {
+  if (state.currentPage > 1) { state.currentPage--; renderTable(); }
+};
+document.getElementById('btnNextPage').onclick = () => {
+  state.currentPage++; renderTable();
+};
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────────────
+document.getElementById('btnExport').onclick = () => {
+  const { rows, cols, labels } = getExportData();
+  if (!rows.length) { toast('Nothing to export'); return; }
+  const csv = [cols.map(c => labels[c]).join(',')]
+    .concat(rows.map(r => cols.map(c => '"' + (r[c]||'').toString().replace(/"/g,'""') + '"').join(',')))
+    .join('\n');
+  // BOM ensures Excel opens UTF-8 CSV without encoding issues
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `netfold-${state.currentView}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV exported');
+};
+
+// ── COPY TABLE ────────────────────────────────────────────────────────────────
+document.getElementById('btnCopy').onclick = () => {
+  if (state.currentView === 'summary') return;
+  const { rows, cols, labels } = getExportData();
+  if (!rows.length) { toast('Nothing to copy'); return; }
+  // Escape tab/newline chars inside a field so they can't break TSV column/row
+  // structure when pasted into Excel/Sheets (rare in scan data, but possible in
+  // service/version strings).
+  const tsvCell = s => String(s).replace(/\t/g, '\\t').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+  const tsv = [cols.map(c => labels[c]).join('\t')]
+    .concat(rows.map(r => cols.map(c => tsvCell(r[c]||'')).join('\t')))
+    .join('\n');
+  navigator.clipboard.writeText(tsv).then(() => toast('Copied (TSV, paste into Excel/Sheets)'));
+};
+
+// ── CLEAR ─────────────────────────────────────────────────────────────────────
+document.getElementById('btnClear').onclick = () => {
+  if (!confirm('Clear all loaded data?')) return;
+  state.nessusRows = []; state.nmapRows = [];
+  allFiles.clear();
+  document.getElementById('allFileList').innerHTML = '';
+  document.getElementById('allInput').value = '';
+  document.getElementById('exclHosts').value = '';
+  document.getElementById('exclHosts').dispatchEvent(new Event('input'));
+  document.getElementById('exclPorts').value = '';
+  document.getElementById('exclPorts').dispatchEvent(new Event('input'));
+  ['filterIP','filterPort','filterService','filterProto'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('filterOpenOnly').checked = true;
+  resetPage();
+  recomputeAutoColWidths();
+  renderTable();
+  toast('Cleared');
+};
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+const TOAST_MAX_CHARS = 100;
+
+function toast(msg, level) {
+  const container = document.getElementById('toast-container');
+  const item = document.createElement('div');
+  item.className = 'toast-item';
+  // Long messages (e.g. long filenames) are truncated so the toast can't
+  // overflow its box.
+  const display = msg.length > TOAST_MAX_CHARS ? msg.slice(0, TOAST_MAX_CHARS) + '…' : msg;
+  const label = level === 'error'   ? '<span class="toast-label-error">Error:</span> '
+              : level === 'success' ? '<span class="toast-label-success">Success:</span> '
+              : level === 'warning' ? '<span class="toast-label-warning">Warning:</span> '
+              : '';
+  // msg is always escaped since filenames flow into toasts and must render
+  // as text, never markup. label is a fixed hardcoded string, never derived
+  // from msg, so it's safe to insert as raw HTML alongside the escaped text.
+  item.innerHTML = `<span style="flex:1">${label}${esc(display)}</span><span class="toast-close">✕</span>`;
+  container.appendChild(item);
+  requestAnimationFrame(() => item.classList.add('show'));
+
+  function dismiss() {
+    item.classList.remove('show');
+    setTimeout(() => item.remove(), 220);
+  }
+
+  item.querySelector('.toast-close').onclick = dismiss;
+  setTimeout(dismiss, 10000);
+}
+
+recomputeAutoColWidths();
+renderTable();
+
+// Canvas text measurement may fall back to generic monospace metrics if the
+// webfont hasn't loaded yet, so refine the auto-fit widths once it's ready.
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => { recomputeAutoColWidths(); renderTable(); });
+}
+</script>
+</body>
+</html>
