@@ -542,8 +542,9 @@
         </div>
         <div class="excl-errors" id="exclHostsErrors"></div>
         <div class="excl-hint">
-          One per line. IPs: <span class="hl">exact</span> · <span class="hl">CIDR</span> /24 · <span class="hl">range</span> x.x.x.1-x.x.x.50 · <span class="hl">wildcard</span> 192.168.1.* · <span class="hl">octet range</span> 10.0-5.1.1-50 (nmap-style)<br>
-          Hostnames (any rule with a letter): <span class="hl">exact</span> web.corp.lan · <span class="hl">wildcard</span> *.corp.lan
+          One per line. IPs: <span class="hl">exact</span> · <span class="hl">CIDR</span> /24 · <span class="hl">range</span> x.x.x.1-x.x.x.50 · <span class="hl">octet range</span> 10.0-5.1.1-50 (nmap-style)<br>
+          Hostnames (any rule with a letter): <span class="hl">exact</span> web.corp.lan<br>
+          <span class="hl">Wildcards</span> match IPs and hostnames: * matches anything, anywhere, incl. dots (172.*.23.* · 172* · *corp.la*)
         </div>
       </div>
       <div class="excl-group">
@@ -571,7 +572,7 @@
       Open ports only
     </label>
     <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);cursor:pointer;margin-left:6px;user-select:none;">
-      <input type="checkbox" id="filterHostLevel" checked onchange="resetPage(); renderTable()"
+      <input type="checkbox" id="filterHostLevel" onchange="resetPage(); renderTable()"
              style="accent-color:var(--accent);width:13px;height:13px;cursor:pointer;">
       Show host-level entries (Port 0)
     </label>
@@ -676,9 +677,9 @@ dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag
 input.addEventListener('change', () => { handleFiles([...input.files]); input.value = ''; });
 
 function handleFiles(files) {
-  // First occurrence of a name wins, based on drop order, not whichever
-  // FileReader resolves first. A repeat (from a prior drop or this same one)
-  // never reaches readFiles, so it can't overwrite the winner's rows or type.
+  // First file with a given name wins, by drop order (not whichever FileReader
+  // resolves first). Duplicates never reach readFiles, so they can't overwrite
+  // the winner's rows or type.
   const toProcess = [];
   const seenInThisBatch = new Set();
   files.forEach(f => {
@@ -728,8 +729,7 @@ function readFiles(files) {
       if (detectedType === 'nessus' && !state.nmapRows.length)   setViewActive('nessus');
       if (detectedType === 'nmap'   && !state.nessusRows.length) setViewActive('nmap');
 
-      // 0 rows usually means truncated/corrupted or empty data, so flag it
-      // as a warning instead of a normal success.
+      // 0 rows usually means a truncated/corrupted or empty file: warn, not success.
       toast(`Parsed ${rows.length} rows from ${f.name}`, rows.length === 0 ? 'warning' : 'success');
       updateFileList();
       renderTable();
@@ -746,8 +746,8 @@ function updateFileList() {
     const cls = type === 'nessus' ? 'ft-nessus' : type === 'nmap' ? 'ft-nmap' : '';
     tag.className = `file-tag ${cls}`;
     const label = type ? `[${type}] ` : '';
-    // Displayed name is truncated so a long filename can't overflow the tag;
-    // data-name keeps the full original name so removal still matches correctly.
+    // Truncate the shown name so a long filename can't overflow the tag; data-name
+    // keeps the full name so removal still matches.
     const displayName = name.length > TOAST_MAX_CHARS ? name.slice(0, TOAST_MAX_CHARS) + '…' : name;
     tag.innerHTML = `<span>${label}${esc(displayName)}</span><span class="rm" data-name="${esc(name)}">×</span>`;
     el.appendChild(tag);
@@ -780,9 +780,9 @@ function parseNessus(doc, fname) {
       if (!hostname && n === 'hostname')     hostname = tag.textContent.trim().toLowerCase();
       if (!hostname && n === 'netbios-name') hostname = tag.textContent.trim().toLowerCase();
     });
-    // Fallback when there's no host-ip tag: the name attribute may be an IP
-    // or a hostname. Only use it as ip if it parses as IPv4, else keep it as
-    // hostname (wrongly landing in ip would sort as 0.0.0.0 and skip exclusions).
+    // No host-ip tag: the name attribute may be an IP or a hostname. Use it as ip
+    // only if it's valid IPv4, else treat it as hostname (a non-IP in ip would
+    // sort as 0.0.0.0 and skip exclusions).
     if (!ip) {
       const nameAttr = (host.getAttribute('name') || '').trim();
       if (isValidIPv4(nameAttr)) ip = nameAttr;
@@ -795,15 +795,14 @@ function parseNessus(doc, fname) {
       const svcName  = (item.getAttribute('svc_name') || '').toLowerCase();
       const pluginId = item.getAttribute('pluginID') || '';
       if (!NESSUS_PORT_PLUGINS.has(pluginId)) return;
-      // These plugins' plugin_output reads e.g. "Port 443/tcp was found to be
-      // open" for confirmed ports. Anything else, including port=0 host-level
-      // items, can't be confirmed from the text, so it's 'unknown', not assumed open.
+      // plugin_output reads e.g. "Port 443/tcp was found to be open" for confirmed
+      // ports. Anything else (incl. port-0 host-level items) is 'unknown', never
+      // assumed open.
       const output = item.querySelector('plugin_output')?.textContent || '';
-      // Matches the full phrase, not just "found to be open", so negated
-      // text like "was not found to be open" doesn't false-positive.
+      // Full phrase, so "was not found to be open" doesn't false-positive.
       const stateVal = /was found to be open/i.test(output) ? 'open' : 'unknown';
-      // Port 0 isn't a real service port, so svc_name (often "general" or a
-      // guess) doesn't mean anything here; always label it "reserved".
+      // Port 0 is not a real service port, so svc_name is meaningless: label it
+      // "reserved".
       const service = port === '0' ? 'reserved' : svcName;
       rows.push({ _file: fname, source: 'nessus', ip, hostname, protocol: proto.toLowerCase(), port, service, state: stateVal });
     });
@@ -827,9 +826,8 @@ function parseNmap(doc, fname) {
 
     const ports = host.querySelectorAll('port');
     if (ports.length === 0) {
-      // Host has no <port> elements (e.g. scanned but nothing open/listed).
-      // Without this it would never appear in NetFold; synthesize a
-      // host-level row so it's still visible (Port 0).
+      // No <port> elements (scanned but nothing open/listed). Synthesize a
+      // host-level row (Port 0) so the host stays visible instead of vanishing.
       rows.push({ _file: fname, source: 'nmap', ip, hostname, protocol: 'tcp', port: '0', service: 'reserved', state: 'unknown' });
     }
     ports.forEach(p => {
@@ -854,9 +852,8 @@ function ipToNumSafe(ip) { try { return ipToNum(ip); } catch { return 0; } }
 function cidrMatch(ip, cidr) {
   try {
     const [base, bits] = cidr.split('/');
-    // /0 must match every IP (mask 0). Guard it explicitly: `~0 << 32` wraps to
-    // `~0 << 0` (JS shift amount is mod 32), which would wrongly build an
-    // all-ones mask and match nothing but the literal base address.
+    // /0 must match every IP (mask 0). Guard explicitly: JS shifts mod 32, so
+    // `~0 << 32` wraps to `~0 << 0` (all-ones mask) and would match only the base.
     let mask;
     if (bits === undefined || bits === '') mask = 0xFFFFFFFF;
     else { const n = parseInt(bits); mask = n === 0 ? 0 : (~0 << (32 - n)) >>> 0; }
@@ -866,14 +863,16 @@ function cidrMatch(ip, cidr) {
 
 function isHostnameRule(rule) { return /[a-zA-Z]/.test(rule); }
 
+// Only '*' is a wildcard metacharacter (matches any run of characters,
+// including dots). Everything else, '?' included, is escaped to a literal.
 function wildcardToRegex(pattern) {
-  const esc2 = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
+  const esc2 = pattern.replace(/[.+^${}()|[\]\\?]/g, '\\$&').replace(/\*/g, '.*');
   return new RegExp('^' + esc2 + '$', 'i');
 }
 
-// Leading zeros ("001", "08") are rejected rather than normalized, since
-// their intended value is ambiguous (decimal vs. octal-looking) and silently
-// guessing wrong would make a rule match nothing without any visible error.
+// Leading zeros ("001", "08") are rejected, not normalized: their value is
+// ambiguous (decimal vs octal-looking) and guessing wrong would silently make
+// a rule match nothing.
 function octetError(s) {
   if (!/^\d{1,3}$/.test(s)) return `"${s}" is not a valid octet`;
   if (s.length > 1 && s[0] === '0') return `octet "${s}" has a leading zero, which is not allowed`;
@@ -924,13 +923,16 @@ function ipInOctetRanges(ip, ranges) {
   return octets.length === 4 && ranges.every((r, i) => octets[i] >= r[0] && octets[i] <= r[1]);
 }
 
-// Classifies a single trimmed exclusion line into a compiled rule, or an
-// error message if it doesn't parse into anything sensible.
+// Classifies one trimmed exclusion line into a compiled rule, or an error if it
+// doesn't parse. Wildcard rules ('wild') use pure string semantics: '*' matches
+// any characters including dots (172.*.23.*, 172*, *corp.la*, and 10.*.5 spanning
+// octets all work), and match against BOTH the IP and the hostname, so fe80:*
+// can exclude IPv6 hosts.
 function classifyHostRule(rule) {
   if (isHostnameRule(rule)) {
-    const wildcard = rule.includes('*') || rule.includes('?');
+    const wildcard = rule.includes('*');
     return { rule: wildcard
-      ? { type: 'host-wild', regex: wildcardToRegex(rule) }
+      ? { type: 'wild', regex: wildcardToRegex(rule) }
       : { type: 'host-exact', value: rule.toLowerCase() } };
   }
   if (rule.includes('/')) {
@@ -967,9 +969,8 @@ function classifyHostRule(rule) {
     return { error: `invalid rule "${rule}"` };
   }
   if (rule.includes('*')) {
-    const prefix = rule.replace(/\*/g, '');
-    if (prefix) return { rule: { type: 'ip-wild', prefix } };
-    return { error: `wildcard "${rule}" matches nothing and was ignored` };
+    if (!rule.replace(/\*/g, '')) return { error: `wildcard "${rule}" matches nothing and was ignored` };
+    return { rule: { type: 'wild', regex: wildcardToRegex(rule) } };
   }
   if (rule.split('.').length === 4) {
     const err = ipv4Error(rule);
@@ -979,10 +980,9 @@ function classifyHostRule(rule) {
   return { error: `"${rule}" is not a valid IP or hostname` };
 }
 
-// Parses an exclusion textarea into a compiled rule set once per call, instead
-// of re-parsing/recompiling per row (was O(rows x rules), the main perf hot
-// spot). Also collects per-line errors for invalid rules, keyed by their
-// 1-indexed line number in the original text.
+// Compiles an exclusion textarea into a rule set once per call, not per row
+// (per-row was O(rows x rules), the main perf hot spot). Also collects per-line
+// errors keyed by 1-indexed line number.
 function parseHostRules(text) {
   const rules = [];
   const errors = [];
@@ -1001,12 +1001,11 @@ function matchesHostRules(rules, ip, hostname) {
   const hn = (hostname || '').toLowerCase();
   return rules.some(r => {
     switch (r.type) {
-      case 'host-wild':  return hn && r.regex.test(hn);
+      case 'wild':       return !!(ip && r.regex.test(ip)) || !!(hn && r.regex.test(hn));
       case 'host-exact': return hn === r.value;
       case 'cidr':       return cidrMatch(ip, r.cidr);
       case 'ip-range':   return ipToNumSafe(ip) >= r.lo && ipToNumSafe(ip) <= r.hi;
       case 'ip-octet-range': return ipInOctetRanges(ip, r.ranges);
-      case 'ip-wild':    return ip.startsWith(r.prefix);
       case 'ip-exact':   return ip === r.value;
     }
     return false;
@@ -1049,19 +1048,18 @@ function matchesPortRules(rules, port) {
   return rules.some(r => r.range ? (p >= r.lo && p <= r.hi) : r.value === p);
 }
 
-// Host part of a row's identity key. Falls back to the hostname when the IP is
-// empty (Nessus hosts with no host-ip tag), so distinct hostname-only hosts
-// don't all collapse onto the shared empty-IP key. The 'hn:' prefix can't
-// collide with a real IP string.
+// Host part of a row's identity key. Falls back to hostname when the IP is empty
+// (Nessus hosts with no host-ip tag) so hostname-only hosts don't collapse onto
+// one shared empty-IP key. The 'hn:' prefix can't collide with a real IP.
 function rowHostKey(r) { return r.ip || 'hn:' + r.hostname; }
 
 function applyExclusions(rows) {
   const hostRules = parseHostRules(document.getElementById('exclHosts').value).rules;
   const portRules = parsePortRules(document.getElementById('exclPorts').value).rules;
 
-  // Consolidate hostnames first: dedup below keeps one row per key, so a
-  // duplicate (e.g. a re-scan) with a hostname the first row lacks would
-  // otherwise silently drop that hostname. Use the first non-empty one per key.
+  // Consolidate hostnames first: the dedup below keeps one row per key, so a
+  // duplicate carrying a hostname the winner lacks would otherwise lose it.
+  // Keep the first non-empty hostname per key.
   const hostnameByKey = new Map();
   for (const r of rows) {
     if (!r.hostname) continue;
@@ -1070,8 +1068,7 @@ function applyExclusions(rows) {
   }
 
   // Dedup, preferring 'open' when duplicates disagree on state, so a re-scan
-  // that found a port open isn't discarded just because an older, less
-  // complete file happened to load first.
+  // finding a port open isn't lost to an older file that loaded first.
   const byKey = new Map();
   for (const r of rows) {
     const k = `${rowHostKey(r)}|${r.protocol}|${r.port}|${r.source}`;
@@ -1103,14 +1100,13 @@ function applyFilters(rows) {
 
   return rows.filter(r => {
     const isHostLevel = r.port === '0';
-    // "Show host-level entries" only decides whether port-0 rows are
-    // eligible to show. It must not skip the filters below, or searching
-    // for a specific host would still surface every other host's port-0 row.
+    // "Show host-level entries" only gates whether port-0 rows are eligible; it
+    // must not skip the filters below, or a host search would surface every
+    // other host's port-0 row.
     if (isHostLevel && !showHostLevel) return false;
-    // Open ports only skips host-level rows: their state is almost always
-    // 'unknown' since port 0 isn't real, so requiring 'open' would hide them
-    // even with the checkbox on. For real rows, nmap needs open+tcp/udp;
-    // nessus and merged 'both' rows now carry a real state too.
+    // "Open ports only" skips host-level rows (port 0 has no real state, so
+    // requiring 'open' would hide them even with the checkbox on). For real rows:
+    // nmap needs open + tcp/udp; nessus and merged 'both' rows carry a real state.
     if (openOnly && !isHostLevel) {
       const st = (r.state || '').toLowerCase();
       if (r.source === 'nmap') {
@@ -1164,12 +1160,11 @@ const COL_CLASS = {
 };
 
 // ── COMBINED MERGE ────────────────────────────────────────────────────────────
-// Collapses rows sharing host+hostname+proto+port+state across sources into
-// one row with source='both'. Hostname is part of the match key, so a host
-// with two different non-empty hostnames across sources (Nessus FQDN vs Nmap
-// PTR) stays as two separate rows rather than dropping one name. An empty
-// hostname from one source does not backfill from the other; it's just a
-// distinct key value, so that case also stays split rather than merging.
+// Collapses rows sharing host+hostname+proto+port+state across sources into one
+// 'both' row. Hostname is in the key, so a host with two different hostnames
+// (Nessus FQDN vs Nmap PTR) stays split rather than dropping a name. An empty
+// hostname never backfills from the other source; it's a distinct key value, so
+// that case stays split too.
 function mergeCombinedRows(rows) {
   const map = new Map();
   rows.forEach(r => {
@@ -1313,9 +1308,9 @@ function updatePaginationUI(totalCount, totalPages) {
 function resetPage() { state.currentPage = 1; }
 
 // pageGroups: the slice to render. filteredCount: total matched groups
-// (pre-pagination), used for the "X groups" label and empty-state check.
-// Shared with getExportData()'s summary branch so CSV/copy output uses the
-// same "first N ports + X more" truncation as the on-screen table.
+// (pre-pagination) for the "X groups" label and empty-state check.
+// MAX_VISIBLE_PORTS is shared with getExportData()'s summary branch so CSV/copy
+// use the same "first N ports + X more" truncation as the table.
 const MAX_VISIBLE_PORTS = 50;
 
 function renderSummary(pageGroups, filteredCount, totalGroups, body, empty, footer) {
@@ -1431,11 +1426,10 @@ function renderSummary(pageGroups, filteredCount, totalGroups, body, empty, foot
 function renderTable() {
   const v = state.currentView;
 
-  // Combined pipeline, computed once and shared by the stats bar, Summary,
-  // and Combined view. Merge happens before filters: filtering first could
-  // drop one source's row while the matching row from the other passed, so
-  // the merge would never see both sides and would report 'nessus'/'nmap'
-  // instead of 'both'.
+  // Combined pipeline, computed once and shared by the stats bar, Summary, and
+  // Combined view. Merge before filter: filtering first could drop one source's
+  // row while the other's passed, so the merge would never see both sides and
+  // would mislabel a 'both' row as 'nessus'/'nmap'.
   const combinedRaw      = [...state.nessusRows, ...state.nmapRows];
   const combinedExcluded = applyExclusions(combinedRaw);
   const combinedMergedAll = mergeCombinedRows(combinedExcluded);
@@ -1537,18 +1531,17 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Wraps hostnames/FQDNs with a title attribute so the full value is always
-// available as a tooltip. CSS ellipsis (.host-cell-text) handles the visual
-// abbreviation; setting title unconditionally avoids per-row layout cost.
+// Wraps a hostname with a title attribute so the full value shows on hover. CSS
+// ellipsis (.host-cell-text) handles the visual truncation; setting title
+// unconditionally avoids a per-row measure of whether it was truncated.
 function fmtHost(h) {
   if (!h) return '—';
   return `<span class="host-cell-text" title="${esc(h)}">${esc(h)}</span>`;
 }
 
-// Suppresses the click that fires right after a column-resize drag ends, so
-// releasing the mouse over a sortable header doesn't also trigger sort.
-// Registered once, globally, in the capture phase (runs before the header's
-// own bubble-phase onclick). Only acts on clicks landing on a <th>, since an
+// Suppresses the click fired right after a column-resize drag ends, so releasing
+// over a sortable header doesn't also sort. Registered once in the capture phase
+// (before the header's bubble-phase onclick). Only acts on clicks on a <th>: an
 // earlier version swallowed the next click anywhere in the document.
 let suppressNextHeaderClick = false;
 document.addEventListener('click', e => {
@@ -1562,11 +1555,10 @@ document.addEventListener('click', e => {
 }, true);
 
 // ── AUTO COLUMN WIDTHS ────────────────────────────────────────────────────────
-// Sizes each column to fit its actual field content (e.g. hostnames get more
-// room than proto/port). Recomputed only when loaded data changes (initial
-// load, file add/remove, clear), not on filter/sort/page interactions, and
-// only applied to columns the user hasn't manually resized (state.colWidths
-// always wins, see makeColumnsResizable).
+// Sizes each column to fit its actual content (hostnames get more room than
+// proto/port). Recomputed only when loaded data changes (load, add/remove,
+// clear), not on filter/sort/page, and applied only to columns the user hasn't
+// manually resized (state.colWidths always wins, see makeColumnsResizable).
 let _measureCtx = null;
 function measureTextWidth(text, font) {
   if (!_measureCtx) _measureCtx = document.createElement('canvas').getContext('2d');
@@ -1574,11 +1566,10 @@ function measureTextWidth(text, font) {
   return _measureCtx.measureText(text).width;
 }
 
-// Canvas text measurement isn't reliable for the header row: this page sets
-// `zoom: 1.25` on <html>, and canvas glyph metrics ignore that (plus the real
-// letter-spacing/uppercase/sort-icon markup), which clipped the sort arrow to
-// "…". Instead, render the real header markup into a hidden off-screen ruler
-// table (matched by the same `thead th` CSS rule) and read its rendered width.
+// Canvas measurement is unreliable for headers: the page sets `zoom: 1.25` on
+// <html>, which canvas ignores (along with letter-spacing/uppercase/sort-icon
+// markup), clipping the sort arrow to "…". Instead render the real header markup
+// into a hidden off-screen ruler table (same `thead th` CSS) and read its width.
 let _headerRuler = null;
 function measureRenderedHeaderWidth(labelText) {
   if (!_headerRuler) {
@@ -1660,11 +1651,11 @@ function recomputeAutoColWidths() {
 }
 
 // ── COLUMN RESIZING ───────────────────────────────────────────────────────────
-// Makes each <th> in the current <thead> draggable-resizable (except the last
-// one) and persists widths in state.colWidths keyed by a caller-supplied key
-// (survives re-renders/view switches). The rightmost column gets no handle
-// and no explicit width, since it's the "auto" column that absorbs whatever
-// space is left, so dragging another column's border moves only that boundary.
+// Makes each <th> in the current <thead> resizable (except the last) and
+// persists widths in state.colWidths under a caller-supplied key (survives
+// re-renders/view switches). The rightmost column gets no handle or width: it's
+// the "auto" column absorbing leftover space, so dragging a border moves only
+// that one boundary.
 function makeColumnsResizable(theadRow, keyFn) {
   const ths = [...theadRow.children];
   ths.forEach((th, i) => {
@@ -1709,8 +1700,8 @@ function makeColumnsResizable(theadRow, keyFn) {
 function updateStats(groups) {
   const uniqueIPs       = new Set(groups.flatMap(g => g.ips)).size;
   const uniqueHostnames = new Set(groups.flatMap(g => g.hostnames)).size;
-  // Port 0 isn't a real port (it's the host-level entry marker), so it's
-  // excluded here even when "Show host-level entries" is on.
+  // Port 0 is the host-level marker, not a real port, so it's excluded from the
+  // unique-port count even when "Show host-level entries" is on.
   const uniquePorts = new Set(groups.flatMap(g => g.ports
     .filter(p => p.port !== '0')
     .map(p => p.protocol + '/' + p.port))).size;
@@ -1887,7 +1878,8 @@ document.getElementById('btnClear').onclick = () => {
   document.getElementById('exclPorts').value = '';
   document.getElementById('exclPorts').dispatchEvent(new Event('input'));
   ['filterIP','filterPort','filterService','filterProto'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('filterOpenOnly').checked = true;
+  // "Open ports only" and "Show host-level entries" are view preferences, not
+  // loaded data, so Clear leaves both checkboxes exactly as the user set them.
   resetPage();
   recomputeAutoColWidths();
   renderTable();
@@ -1908,9 +1900,9 @@ function toast(msg, level) {
               : level === 'success' ? '<span class="toast-label-success">Success:</span> '
               : level === 'warning' ? '<span class="toast-label-warning">Warning:</span> '
               : '';
-  // msg is always escaped since filenames flow into toasts and must render
-  // as text, never markup. label is a fixed hardcoded string, never derived
-  // from msg, so it's safe to insert as raw HTML alongside the escaped text.
+  // msg is escaped: filenames flow into toasts and must render as text, not
+  // markup. label is a fixed string, never derived from msg, so it's safe as
+  // raw HTML alongside the escaped text.
   item.innerHTML = `<span style="flex:1">${label}${esc(display)}</span><span class="toast-close">✕</span>`;
   container.appendChild(item);
   requestAnimationFrame(() => item.classList.add('show'));
