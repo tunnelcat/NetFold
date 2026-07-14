@@ -33,17 +33,17 @@ No internet connection required after the initial font load (Google Fonts). For 
 
 ## Features
 
-- **Format auto-detection**: by content, not extension or filename. A file is parsed by its actual XML structure (root tag and element presence), so a `.nessus` file with the wrong extension, no extension, or a misleading name still parses.
+- **Format auto-detection**: by content, not extension or filename. A file is parsed by its actual XML structure (root tag and element presence), so a file with the wrong extension, no extension, or a misleading name still parses if valid.
 - **Deduplication**: across multiple files of the same type. See [Keying and merging](#keying-and-merging).
 - **Duplicate filenames are rejected**:
   - The first file with a given name wins, by drop order (not load order).
-  - Every later file with that name is skipped with a warning toast, so a same-batch or later duplicate can't silently overwrite loaded data.
+  - Every later file with that name is skipped with a warning, so a same-batch or later duplicate cannot silently overwrite loaded data.
 - **Host-level entries (port 0)**:
   - Nessus port-0 findings from the port-discovery plugins, and Nmap hosts with no open or listed ports, appear as a synthesized `port 0 / reserved` row, so a scanned-but-empty host is never invisible.
   - Toggled independently of "Open ports only", and still subject to the IP/port/service/protocol filters.
 - **Exclusions**: one rule per line, with invalid rules flagged inline by line number.
   - **IP exact**: `192.168.1.1`
-  - **CIDR**: `10.0.0.0/24` (a leading zero in the mask is rejected)
+  - **CIDR**: `10.0.0.0/24` 
   - **Whole-IP range**: `10.0.0.1-10.0.0.50`
   - **Per-octet range** (nmap-style): `10.0-5.1.1-50`
   - **Hostname exact**: `web.corp.lan`
@@ -55,14 +55,11 @@ No internet connection required after the initial font load (Google Fonts). For 
 - **Copy as TSV**: copies the active view to the clipboard, for pasting into Excel or Sheets.
 - **Column resizing**: per-column auto-fit sizing from the loaded data; manual resizes persist across re-renders.
 - **Light and dark mode.**
-- **Toast notifications**: color-coded.
-  - **Green**: successful parse.
-  - **Yellow**: a recognized but empty file (0 rows, usually truncated or corrupted), or a skipped duplicate.
-  - **Red**: a file that couldn't be identified as Nessus or Nmap.
+- **Color-coded toast notifications**
 
 ## Nessus parsing notes
 
-- **Plugins**: only `11219` (SYN scanner) and `14274` (UDP scanner) are used for port discovery. Everything else is ignored, including at port 0.
+- **Plugins**: only `11219` (SYN scanner) and `14274` (UDP scanner) are used for port discovery.
 - **State**: NetFold scans the plugin's `plugin_output` for the phrase "was found to be open". Found means `open`; not found means `unknown` (never assumed open).
 - **Hostname**: whichever of `host-fqdn`, `hostname`, or `netbios-name` appears first in the file.
 - **IP**: read from `host-ip`. If that's missing, NetFold falls back to the `ReportHost` name attribute, using it as the IP only if it's valid IPv4; otherwise that value becomes the hostname.
@@ -76,7 +73,7 @@ No internet connection required after the initial font load (Google Fonts). For 
 
 NetFold identifies a row by its host (IP, or hostname if there's no IP), protocol, and port. That identity is used two ways:
 
-- **Same-source dedup**: two Nessus files (or two Nmap files) describing the same host/protocol/port collapse into one row, whatever the files are named. If they disagree on state, `open` wins, so confirming a port open on a re-scan isn't lost to an older file loading first.
+- **Same-source deduplication**: two Nessus files (or two Nmap files) describing the same host/protocol/port collapse into one row, whatever the files are named. If they disagree on state, `open` wins, so confirming a port open on a re-scan isn't lost to an older file loading first.
 - **Cross-source merge** (Combined view only): a Nessus row and an Nmap row combine into one `both` row only if they also agree on hostname (case-insensitive) and state. If the two sources report different hostnames for the same host/port, both rows stay separate so neither name is dropped. An empty hostname on one side never matches a non-empty one on the other.
 
 ## License
